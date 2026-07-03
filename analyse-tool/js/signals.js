@@ -20,7 +20,8 @@ const Signals = (() => {
         if (i < 30) return { items, score: 0, verdict: 'NEUTRAL' };
 
         const c = candles[i];
-        const push = (name, dir, text) => items.push({ name, dir, text });
+        // `text` = Fachsprache (Profi-Ansicht), `simple` = Alltagssprache (Einsteiger-Ansicht)
+        const push = (name, dir, text, simple) => items.push({ name, dir, text, simple });
 
         // 1) Trend: EMA 9 vs. EMA 20 (inkl. frischem Kreuz)
         const e9 = ind.ema9[i], e20 = ind.ema20[i];
@@ -28,43 +29,59 @@ const Signals = (() => {
         if (e9 !== null && e20 !== null) {
             const crossedUp = e9p !== null && e20p !== null && e9p <= e20p && e9 > e20;
             const crossedDown = e9p !== null && e20p !== null && e9p >= e20p && e9 < e20;
-            if (crossedUp) push('EMA-Kreuz', 1, 'EMA 9 kreuzt EMA 20 nach oben (frisches Kaufsignal)');
-            else if (crossedDown) push('EMA-Kreuz', -1, 'EMA 9 kreuzt EMA 20 nach unten (frisches Verkaufssignal)');
-            else if (e9 > e20) push('Trend (EMA)', 1, 'EMA 9 über EMA 20 – kurzfristiger Aufwärtstrend');
-            else push('Trend (EMA)', -1, 'EMA 9 unter EMA 20 – kurzfristiger Abwärtstrend');
+            if (crossedUp) push('EMA-Kreuz', 1, 'EMA 9 kreuzt EMA 20 nach oben (frisches Kaufsignal)',
+                'Der Preis-Durchschnitt der letzten Minuten steigt gerade über den längerfristigen Durchschnitt. Viele werten das als frisches Zeichen für steigende Preise.');
+            else if (crossedDown) push('EMA-Kreuz', -1, 'EMA 9 kreuzt EMA 20 nach unten (frisches Verkaufssignal)',
+                'Der Preis-Durchschnitt der letzten Minuten fällt gerade unter den längerfristigen Durchschnitt. Viele werten das als frisches Zeichen für fallende Preise.');
+            else if (e9 > e20) push('Trend (EMA)', 1, 'EMA 9 über EMA 20 – kurzfristiger Aufwärtstrend',
+                'Der Preis steigt zurzeit eher: Der kurzfristige Durchschnittspreis liegt über dem längerfristigen.');
+            else push('Trend (EMA)', -1, 'EMA 9 unter EMA 20 – kurzfristiger Abwärtstrend',
+                'Der Preis fällt zurzeit eher: Der kurzfristige Durchschnittspreis liegt unter dem längerfristigen.');
         }
 
         // 2) VWAP: institutionelle Referenzlinie im Day-Trading
         const vw = ind.vwap[i];
         if (vw !== null) {
             const distPct = ((c.close - vw) / vw) * 100;
-            if (c.close > vw) push('VWAP', 1, `Kurs ${distPct.toFixed(2)} % über VWAP – Käufer dominieren`);
-            else push('VWAP', -1, `Kurs ${Math.abs(distPct).toFixed(2)} % unter VWAP – Verkäufer dominieren`);
+            if (c.close > vw) push('VWAP', 1, `Kurs ${distPct.toFixed(2)} % über VWAP – Käufer dominieren`,
+                'Der Preis liegt über dem heutigen Durchschnittspreis. Das heißt: Die Käufer sind heute in der Überzahl.');
+            else push('VWAP', -1, `Kurs ${Math.abs(distPct).toFixed(2)} % unter VWAP – Verkäufer dominieren`,
+                'Der Preis liegt unter dem heutigen Durchschnittspreis. Das heißt: Die Verkäufer sind heute in der Überzahl.');
         }
 
         // 3) RSI: Überkauft/Überverkauft
         const r = ind.rsi[i];
         if (r !== null) {
-            if (r < 30) push('RSI', 1, `RSI ${r.toFixed(1)} – überverkauft, Rebound möglich`);
-            else if (r > 70) push('RSI', -1, `RSI ${r.toFixed(1)} – überkauft, Rücksetzer möglich`);
-            else if (r >= 50) push('RSI', 0.5, `RSI ${r.toFixed(1)} – bullischer Bereich`);
-            else push('RSI', -0.5, `RSI ${r.toFixed(1)} – bärischer Bereich`);
+            if (r < 30) push('RSI', 1, `RSI ${r.toFixed(1)} – überverkauft, Rebound möglich`,
+                'Der Preis ist zuletzt ungewöhnlich stark gefallen. Oft erholt er sich danach wieder etwas.');
+            else if (r > 70) push('RSI', -1, `RSI ${r.toFixed(1)} – überkauft, Rücksetzer möglich`,
+                'Der Preis ist zuletzt ungewöhnlich stark gestiegen. Oft folgt darauf eine kleine Verschnaufpause nach unten.');
+            else if (r >= 50) push('RSI', 0.5, `RSI ${r.toFixed(1)} – bullischer Bereich`,
+                'Das Kräfteverhältnis der letzten Zeit spricht leicht für die Käufer.');
+            else push('RSI', -0.5, `RSI ${r.toFixed(1)} – bärischer Bereich`,
+                'Das Kräfteverhältnis der letzten Zeit spricht leicht für die Verkäufer.');
         }
 
         // 4) MACD-Histogramm: Momentum und frische Kreuzungen
         const h = ind.macd.histogram[i], hp = ind.macd.histogram[i - 1];
         if (h !== null && hp !== null) {
-            if (hp <= 0 && h > 0) push('MACD', 1, 'MACD kreuzt Signallinie nach oben – Momentum dreht bullisch');
-            else if (hp >= 0 && h < 0) push('MACD', -1, 'MACD kreuzt Signallinie nach unten – Momentum dreht bärisch');
-            else if (h > 0) push('MACD', 0.5, 'MACD-Histogramm positiv – bullisches Momentum');
-            else push('MACD', -0.5, 'MACD-Histogramm negativ – bärisches Momentum');
+            if (hp <= 0 && h > 0) push('MACD', 1, 'MACD kreuzt Signallinie nach oben – Momentum dreht bullisch',
+                'Der Schwung der Preisbewegung dreht gerade nach oben – wie ein Ball, der wieder Fahrt aufnimmt.');
+            else if (hp >= 0 && h < 0) push('MACD', -1, 'MACD kreuzt Signallinie nach unten – Momentum dreht bärisch',
+                'Der Schwung der Preisbewegung dreht gerade nach unten – die Aufwärtsbewegung verliert Kraft.');
+            else if (h > 0) push('MACD', 0.5, 'MACD-Histogramm positiv – bullisches Momentum',
+                'Die Preisbewegung hat gerade Schwung nach oben.');
+            else push('MACD', -0.5, 'MACD-Histogramm negativ – bärisches Momentum',
+                'Die Preisbewegung hat gerade Schwung nach unten.');
         }
 
         // 5) Bollinger-Bänder: Extremzonen
         const bb = ind.bollinger;
         if (bb.upper[i] !== null) {
-            if (c.close > bb.upper[i]) push('Bollinger', -1, 'Kurs über dem oberen Band – überdehnt, Mean-Reversion-Risiko');
-            else if (c.close < bb.lower[i]) push('Bollinger', 1, 'Kurs unter dem unteren Band – überdehnt, Rebound möglich');
+            if (c.close > bb.upper[i]) push('Bollinger', -1, 'Kurs über dem oberen Band – überdehnt, Mean-Reversion-Risiko',
+                'Der Preis ist gerade ungewöhnlich weit nach oben ausgerissen. Meist pendelt er sich danach wieder in den Normalbereich ein.');
+            else if (c.close < bb.lower[i]) push('Bollinger', 1, 'Kurs unter dem unteren Band – überdehnt, Rebound möglich',
+                'Der Preis ist gerade ungewöhnlich weit nach unten ausgerissen. Meist pendelt er sich danach wieder in den Normalbereich ein.');
         }
 
         // 6) Volumen: bestätigt die letzte Bewegung?
@@ -72,7 +89,8 @@ const Signals = (() => {
         if (volAvg > 0 && c.volume > 1.5 * volAvg) {
             const dir = c.close >= c.open ? 1 : -1;
             push('Volumen', dir * 0.5,
-                `Volumen ${(c.volume / volAvg).toFixed(1)}× über Schnitt – Bewegung wird bestätigt`);
+                `Volumen ${(c.volume / volAvg).toFixed(1)}× über Schnitt – Bewegung wird bestätigt`,
+                'Es wird gerade deutlich mehr gehandelt als sonst üblich. Das macht die aktuelle Bewegung glaubwürdiger.');
         }
 
         const score = items.reduce((s, it) => s + it.dir, 0);

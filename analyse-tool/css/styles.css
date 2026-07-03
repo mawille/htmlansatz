@@ -67,6 +67,27 @@ button:hover { border-color: var(--accent); }
     font-weight: 600;
 }
 
+/* Umschalter Profi/Einsteiger */
+.view-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.view-toggle button {
+    border: none;
+    border-radius: 0;
+    background: var(--panel-2);
+    padding: 6px 14px;
+}
+.view-toggle button.active {
+    background: var(--accent);
+    color: #0b0e13;
+    font-weight: 700;
+}
+
+.hidden { display: none !important; }
+
 .status { font-size: 12px; color: var(--muted); margin-left: auto; }
 .status.live { color: var(--up); }
 .status.demo { color: #f5c542; }
@@ -212,6 +233,101 @@ table.plan td { padding: 5px 0; border-bottom: 1px solid var(--border); }
 table.plan td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
 table.plan tr:last-child td { border-bottom: none; }
 table.plan tr.hl td { color: var(--accent); font-size: 13.5px; }
+
+/* ---------- Einsteiger-Ansicht ---------- */
+
+.simple-summary {
+    font-size: 14.5px;
+    line-height: 1.55;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+}
+
+#simple-chart {
+    flex: 1;
+    width: 100%;
+    min-height: 380px;
+    border-radius: 6px;
+    cursor: crosshair;
+}
+
+.explain-box {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--muted);
+    background: rgba(66, 165, 245, 0.07);
+    border: 1px solid rgba(66, 165, 245, 0.25);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+}
+
+/* Ampel */
+.traffic-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.traffic {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 7px;
+    flex-shrink: 0;
+}
+.light {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #2a3140;
+    transition: all 0.25s;
+}
+.light.red.on { background: var(--down); box-shadow: 0 0 10px rgba(239, 83, 80, 0.8); }
+.light.yellow.on { background: #f5c542; box-shadow: 0 0 10px rgba(245, 197, 66, 0.8); }
+.light.green.on { background: var(--up); box-shadow: 0 0 10px rgba(38, 166, 154, 0.8); }
+.verdict-text { font-size: 13.5px; line-height: 1.5; font-weight: 600; }
+
+/* Signal-Liste in Alltagssprache */
+.signal-list.simple li { line-height: 1.55; }
+.s-icon { margin-right: 4px; }
+.s-tag {
+    display: inline-block;
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0 5px;
+    margin-left: 5px;
+    vertical-align: middle;
+    cursor: help;
+}
+
+/* Kaufen-Rechner in Satzform */
+.plan-text { font-size: 13px; line-height: 1.55; }
+.plan-text p { margin-bottom: 6px; }
+.plan-steps { list-style: none; margin: 8px 0; }
+.plan-steps li {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+}
+.plan-steps li:last-child { border-bottom: none; }
+
+/* Lexikon */
+details {
+    border-bottom: 1px solid var(--border);
+    padding: 7px 0;
+    font-size: 12.5px;
+}
+details:last-of-type { border-bottom: none; }
+details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text);
+}
+details summary:hover { color: var(--accent); }
+details p { margin-top: 6px; color: var(--muted); line-height: 1.55; }
 
 .disclaimer {
     font-size: 11px;
