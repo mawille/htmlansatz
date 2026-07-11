@@ -260,16 +260,23 @@
         localStorage.setItem('view', view);
         el('view-pro-btn').classList.toggle('active', view === 'pro');
         el('view-simple-btn').classList.toggle('active', view === 'simple');
+        el('view-journal-btn').classList.toggle('active', view === 'journal');
         el('pro-chart-section').classList.toggle('hidden', view !== 'pro');
         el('pro-panel').classList.toggle('hidden', view !== 'pro');
         el('simple-chart-section').classList.toggle('hidden', view !== 'simple');
         el('simple-panel').classList.toggle('hidden', view !== 'simple');
+        el('journal-section').classList.toggle('hidden', view !== 'journal');
         // Die zuvor versteckten Canvas-Elemente hatten Größe 0 – neu zeichnen
         requestAnimationFrame(() => {
-            if (view === 'pro') chart.draw(); else simpleChart.draw();
-            if (state.lastBacktest) {
+            if (view === 'pro') chart.draw();
+            else if (view === 'simple') simpleChart.draw();
+            if (state.lastBacktest && view !== 'journal') {
                 const eq = state.lastBacktest.equity.length > 1 ? state.lastBacktest.equity : [0, 0];
                 Backtest.drawEquity(el(view === 'pro' ? 'bt-equity' : 's-bt-equity'), eq);
+            }
+            if (view === 'journal') {
+                prefillJournalForm();
+                renderJournal();
             }
         });
     }
@@ -434,6 +441,133 @@
             ${plan.cappedByCapital ? '<p class="muted">Stückzahl durch das Kapital begrenzt (kein Hebel eingerechnet).</p>' : ''}`;
     }
 
+    /* ---------- Trading-Tagebuch ---------- */
+
+    function prefillJournalForm() {
+        // Datum/Zeit auf jetzt, Symbol und Kurs aus der aktuellen Auswahl
+        const now = new Date();
+        now.setSeconds(0, 0);
+        const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+        el('j-time').value = local.toISOString().slice(0, 16);
+        if (!el('j-symbol').value) el('j-symbol').value = state.symbol;
+        if (!el('j-entry').value && state.candles.length) {
+            el('j-entry').value = state.candles[state.candles.length - 1].close.toFixed(2);
+        }
+    }
+
+    function journalPreview() {
+        const shares = parseInt(el('j-shares').value, 10);
+        const entry = parseFloat(el('j-entry').value);
+        const exit = parseFloat(el('j-exit').value);
+        const fees = parseFloat(el('j-fees').value) || 0;
+        const dir = parseInt(el('j-dir').value, 10);
+        const p = el('j-preview');
+        if (shares > 0 && entry > 0 && exit > 0) {
+            const pnl = (exit - entry) * dir * shares - fees;
+            p.innerHTML = `Ergebnis dieses Trades: <strong class="${pnl >= 0 ? 'pos' : 'neg'}">${pnl >= 0 ? '+' : ''}${fmt(pnl)} €</strong> (nach Gebühren)`;
+        } else {
+            p.textContent = '';
+        }
+    }
+
+    function renderJournal() {
+        const trades = Journal.load();
+        const s = Journal.stats(trades);
+
+        // Bilanz
+        const statsEl = el('j-stats');
+        if (s.count === 0) {
+            statsEl.innerHTML = '<p class="muted">Noch keine Trades erfasst. Trage links deinen ersten (echten oder Übungs-)Trade ein.</p>';
+        } else {
+            const pf = s.profitFactor === Infinity ? '∞' : s.profitFactor.toFixed(2);
+            statsEl.innerHTML = `
+                <div class="bt-grid">
+                    <div class="bt-cell"><span>Gesamtergebnis</span><strong class="${s.total >= 0 ? 'pos' : 'neg'}">${s.total >= 0 ? '+' : ''}${fmt(s.total)} €</strong></div>
+                    <div class="bt-cell"><span>Trades</span><strong>${s.count} (${s.wins} ✓ / ${s.losses} ✗)</strong></div>
+                    <div class="bt-cell"><span>Trefferquote</span><strong>${s.winRate.toFixed(0)} %</strong></div>
+                    <div class="bt-cell"><span>Profitfaktor</span><strong>${pf}</strong></div>
+                    <div class="bt-cell"><span>Ø Gewinn</span><strong class="pos">+${fmt(s.avgWin)} €</strong></div>
+                    <div class="bt-cell"><span>Ø Verlust</span><strong class="neg">−${fmt(s.avgLoss)} €</strong></div>
+                </div>`;
+        }
+        Backtest.drawEquity(el('j-equity'), s.equity.length > 1 ? s.equity : [0, 0]);
+
+        // Coaching-Hinweise
+        el('j-insights').innerHTML = Journal.insights(trades)
+            .map(i => `<p>${i}</p>`).join('');
+
+        // Trade-Liste (neueste zuerst)
+        const table = el('j-table');
+        if (trades.length === 0) { table.innerHTML = ''; return; }
+        const rows = [...trades].reverse().map(t => {
+            const d = new Date(t.time);
+            const pnl = Journal.pnl(t);
+            return `<tr>
+                <td>${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })} ${d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</td>
+                <td><strong>${t.symbol}</strong></td>
+                <td class="${t.dir === 1 ? 'pos' : 'neg'}">${t.dir === 1 ? 'Long' : 'Short'}</td>
+                <td>${t.shares} ×</td>
+                <td>${fmt(t.entry)} → ${fmt(t.exit)}</td>
+                <td class="${pnl >= 0 ? 'pos' : 'neg'}">${pnl >= 0 ? '+' : ''}${fmt(pnl)} €</td>
+                <td class="j-note-cell" title="${(t.note || '').replace(/"/g, '&quot;')}">${t.note || ''}</td>
+                <td><button class="j-delete" data-id="${t.id}" title="Trade löschen">✕</button></td>
+            </tr>`;
+        }).join('');
+        table.innerHTML = '<tr><th>Zeit</th><th>Symbol</th><th>Richtung</th><th>Stück</th><th>Kurs</th><th>Ergebnis</th><th>Notiz</th><th></th></tr>' + rows;
+    }
+
+    function bindJournal() {
+        el('journal-form').addEventListener('submit', e => {
+            e.preventDefault();
+            Journal.add({
+                time: el('j-time').value,
+                symbol: el('j-symbol').value.trim().toUpperCase(),
+                dir: parseInt(el('j-dir').value, 10),
+                shares: parseInt(el('j-shares').value, 10),
+                entry: parseFloat(el('j-entry').value),
+                exit: parseFloat(el('j-exit').value),
+                fees: parseFloat(el('j-fees').value) || 0,
+                note: el('j-note').value.trim(),
+            });
+            // Formular für den nächsten Trade leeren (Zeit/Symbol neu vorbelegen)
+            for (const id of ['j-shares', 'j-entry', 'j-exit', 'j-note']) el(id).value = '';
+            el('j-preview').textContent = '';
+            prefillJournalForm();
+            renderJournal();
+        });
+
+        for (const id of ['j-dir', 'j-shares', 'j-entry', 'j-exit', 'j-fees']) {
+            el(id).addEventListener('input', journalPreview);
+        }
+
+        // Löschen einzelner Trades (Event-Delegation)
+        el('j-table').addEventListener('click', e => {
+            const btn = e.target.closest('.j-delete');
+            if (!btn) return;
+            Journal.remove(btn.dataset.id);
+            renderJournal();
+        });
+
+        el('j-export').addEventListener('click', () => {
+            const trades = Journal.load();
+            if (!trades.length) return;
+            const blob = new Blob(['﻿' + Journal.toCsv(trades)], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'trading-tagebuch.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
+        el('j-clear').addEventListener('click', () => {
+            if (Journal.load().length === 0) return;
+            if (confirm('Wirklich ALLE Tagebuch-Einträge unwiderruflich löschen?')) {
+                Journal.clear();
+                renderJournal();
+            }
+        });
+    }
+
     /* ---------- Watchlist ---------- */
 
     function renderWatchlist() {
@@ -488,6 +622,8 @@
         // Ansicht umschalten: Profi <-> Einsteiger
         el('view-pro-btn').addEventListener('click', () => setView('pro'));
         el('view-simple-btn').addEventListener('click', () => setView('simple'));
+        el('view-journal-btn').addEventListener('click', () => setView('journal'));
+        bindJournal();
 
         // Budget/Risiko beider Ansichten synchron halten
         const syncInputs = (from, to) => el(from).addEventListener('input', () => {
