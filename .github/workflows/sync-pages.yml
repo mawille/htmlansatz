@@ -1,0 +1,18 @@
+# Spiegelt main nach gh-pages, damit GitHub Pages immer den
+# aktuellen Stand zeigt. Läuft bei jedem Push auf main.
+name: GitHub Pages aktualisieren
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: main nach gh-pages pushen
+        run: git push --force origin HEAD:gh-pages

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETF- &amp; Aktien-Analysetool für Day-Trading</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header class="topbar">
+        <h1>📈 Day-Trading-Analyse</h1>
+        <div class="view-toggle" role="group" aria-label="Ansicht wählen">
+            <button id="view-pro-btn" class="active">Profi</button>
+            <button id="view-simple-btn">Einsteiger</button>
+        </div>
+        <form id="symbol-form">
+            <input id="symbol-input" type="text" placeholder="Symbol suchen (z. B. AAPL)" autocomplete="off">
+            <button type="submit">Laden</button>
+        </form>
+        <div id="intervals" class="intervals">
+            <button data-interval="1min">1 Min</button>
+            <button data-interval="5min">5 Min</button>
+            <button data-interval="15min">15 Min</button>
+            <button data-interval="1h">1 Std</button>
+        </div>
+        <button id="refresh" class="refresh" title="Daten neu laden">⟳ Aktualisieren</button>
+        <span id="status" class="status"></span>
+    </header>
+
+    <main class="layout">
+        <!-- Watchlist -->
+        <aside class="sidebar">
+            <h2>Watchlist</h2>
+            <ul id="watchlist" class="watchlist"></ul>
+
+            <div class="api-box">
+                <h3>Live-Daten (optional)</h3>
+                <p class="muted">Kostenlosen API-Key auf <a href="https://twelvedata.com" target="_blank" rel="noopener">twelvedata.com</a> holen. Ohne Key läuft das Tool mit simulierten Demo-Daten.</p>
+                <input id="api-key" type="password" placeholder="Twelve-Data-API-Key">
+                <button id="api-key-save">Speichern &amp; laden</button>
+            </div>
+        </aside>
+
+        <!-- Chart (Profi-Ansicht) -->
+        <section id="pro-chart-section" class="chart-area">
+            <div class="chart-header">
+                <div>
+                    <span id="symbol-title" class="symbol-title"></span>
+                    <span id="symbol-price" class="price"></span>
+                    <span id="symbol-change" class="change"></span>
+                </div>
+                <div class="overlays">
+                    <label><input id="ov-ema" type="checkbox" checked> EMA 9/20</label>
+                    <label><input id="ov-vwap" type="checkbox" checked> VWAP</label>
+                    <label><input id="ov-bollinger" type="checkbox" checked> Bollinger</label>
+                </div>
+            </div>
+            <canvas id="chart"></canvas>
+            <p class="hint">Mausrad = Zoom · Ziehen = Verschieben · Bewegen = Fadenkreuz mit OHLC-Daten</p>
+        </section>
+
+        <!-- Chart (Einsteiger-Ansicht) -->
+        <section id="simple-chart-section" class="chart-area hidden">
+            <div class="chart-header">
+                <div>
+                    <span id="s-symbol-title" class="symbol-title"></span>
+                </div>
+            </div>
+            <p id="s-summary" class="simple-summary"></p>
+            <canvas id="simple-chart"></canvas>
+            <p class="hint">Bewege die Maus über die Linie, um den Preis zu einem bestimmten Zeitpunkt zu sehen.</p>
+            <div class="explain-box">
+                📖 <strong>So liest du das Bild:</strong> Die Linie zeigt, wie sich der Preis eines Anteils
+                über die Zeit verändert hat – links ist die Vergangenheit, rechts ist jetzt.
+                Geht die Linie nach oben, ist der Anteil teurer geworden; geht sie nach unten, ist er billiger geworden.
+                Der Punkt ganz rechts ist der aktuelle Preis.
+            </div>
+        </section>
+
+        <!-- Analyse (Profi-Ansicht) -->
+        <aside id="pro-panel" class="panel">
+            <section class="card">
+                <h2>Signal-Auswertung</h2>
+                <div class="verdict-row">
+                    <span id="verdict" class="verdict neutral">–</span>
+                    <span id="score" class="muted"></span>
+                </div>
+                <ul id="signal-list" class="signal-list"></ul>
+            </section>
+
+            <section class="card">
+                <h2>Positionsgrößen-Rechner</h2>
+                <div class="calc-inputs">
+                    <label>Kapital (€)
+                        <input id="capital" type="number" value="10000" min="0" step="500">
+                    </label>
+                    <label>Risiko pro Trade (%)
+                        <input id="risk" type="number" value="1" min="0.1" max="10" step="0.1">
+                    </label>
+                </div>
+                <p id="atr-value" class="muted"></p>
+                <div id="position-body"></div>
+            </section>
+
+            <p class="disclaimer">⚠️ Nur zu Analyse- und Lernzwecken. Keine Anlageberatung –
+               Day-Trading ist hochriskant und kann zum Totalverlust führen.</p>
+        </aside>
+
+        <!-- Analyse (Einsteiger-Ansicht) -->
+        <aside id="simple-panel" class="panel hidden">
+            <section class="card">
+                <h2>Wie stehen die Zeichen?</h2>
+                <div class="traffic-row">
+                    <div class="traffic" aria-hidden="true">
+                        <span id="light-red" class="light red"></span>
+                        <span id="light-yellow" class="light yellow"></span>
+                        <span id="light-green" class="light green"></span>
+                    </div>
+                    <p id="s-verdict-text" class="verdict-text"></p>
+                </div>
+                <p class="muted">Das Tool prüft mehrere Anzeichen im Kursverlauf. Hier sind sie einzeln erklärt:</p>
+                <ul id="s-signal-list" class="signal-list simple"></ul>
+            </section>
+
+            <section class="card">
+                <h2>Wie viel könnte ich kaufen?</h2>
+                <div class="calc-inputs">
+                    <label>Mein Budget (€)
+                        <input id="s-capital" type="number" value="10000" min="0" step="500">
+                    </label>
+                    <label>Max. Verlust, den ich aushalte (%)
+                        <input id="s-risk" type="number" value="1" min="0.1" max="10" step="0.1">
+                    </label>
+                </div>
+                <div id="s-plan-text" class="plan-text"></div>
+            </section>
+
+            <section class="card">
+                <h2>Kleines Lexikon</h2>
+                <details>
+                    <summary>Was ist eine Aktie?</summary>
+                    <p>Ein kleiner Anteil an einer Firma. Wer eine Aktie besitzt, gehört zu den Miteigentümern.
+                       Läuft es gut für die Firma, wollen viele Leute die Aktie haben und der Preis steigt – und umgekehrt.</p>
+                </details>
+                <details>
+                    <summary>Was ist ein ETF?</summary>
+                    <p>Ein Korb aus vielen Aktien auf einmal, z.&nbsp;B. den 500 größten US-Firmen.
+                       Man kauft mit einem einzigen Anteil ein ganzes Bündel und verteilt so sein Risiko.</p>
+                </details>
+                <details>
+                    <summary>Warum ändert sich der Preis ständig?</summary>
+                    <p>Der Preis entsteht aus Angebot und Nachfrage: Wollen gerade mehr Leute kaufen als verkaufen,
+                       steigt er. Wollen mehr verkaufen, fällt er. Das passiert im Sekundentakt.</p>
+                </details>
+                <details>
+                    <summary>Was heißt „Long" und „Short"?</summary>
+                    <p>„Long" heißt: auf steigende Preise setzen (kaufen, später teurer verkaufen).
+                       „Short" heißt: auf fallende Preise setzen – das ist ein Profi-Werkzeug und für Einsteiger ungeeignet.</p>
+                </details>
+                <details>
+                    <summary>Was ist ein Stop-Loss?</summary>
+                    <p>Eine automatische Notbremse: Man legt vorher einen Preis fest, bei dem automatisch verkauft wird,
+                       falls es schiefgeht. So bleibt der Verlust begrenzt.</p>
+                </details>
+                <details>
+                    <summary>Was ist Day-Trading?</summary>
+                    <p>Kaufen und wieder verkaufen am selben Tag, um kleine Preisschwankungen zu nutzen.
+                       Klingt einfach, ist aber sehr riskant – die meisten Anfänger verlieren dabei Geld.</p>
+                </details>
+            </section>
+
+            <p class="disclaimer">⚠️ Dieses Tool ist zum Lernen gedacht und keine Anlageberatung.
+               Beim Day-Trading kann man sein eingesetztes Geld komplett verlieren.</p>
+        </aside>
+    </main>
+
+    <script src="js/indicators.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/signals.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/simple-chart.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
