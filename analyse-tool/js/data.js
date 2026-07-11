@@ -10,21 +10,56 @@
 
 const DataProvider = (() => {
 
-    // Vordefinierte Watchlist: gängige ETFs und Day-Trading-Aktien
+    // Vordefinierte Watchlist: gängige ETFs und die beliebtesten
+    // Day-Trading-Aktien – alle über Trade Republic handelbar.
+    // US-Symbole funktionieren auch im Live-Modus (Twelve Data, Gratis-Tarif).
     const WATCHLIST = [
+        // --- ETFs ---
         { symbol: 'SPY',  name: 'SPDR S&P 500 ETF',        type: 'ETF',   basePrice: 545,  vola: 0.0009 },
         { symbol: 'QQQ',  name: 'Invesco Nasdaq-100 ETF',  type: 'ETF',   basePrice: 480,  vola: 0.0012 },
         { symbol: 'IWM',  name: 'iShares Russell 2000 ETF',type: 'ETF',   basePrice: 215,  vola: 0.0013 },
         { symbol: 'EUNL', name: 'iShares Core MSCI World', type: 'ETF',   basePrice: 105,  vola: 0.0007 },
         { symbol: 'EXS1', name: 'iShares Core DAX ETF',    type: 'ETF',   basePrice: 155,  vola: 0.0010 },
-        { symbol: 'AAPL', name: 'Apple Inc.',              type: 'Aktie', basePrice: 212,  vola: 0.0014 },
+        // --- US-Tech-Schwergewichte (hohes Volumen, enge Spreads) ---
         { symbol: 'NVDA', name: 'NVIDIA Corp.',            type: 'Aktie', basePrice: 152,  vola: 0.0024 },
         { symbol: 'TSLA', name: 'Tesla Inc.',              type: 'Aktie', basePrice: 305,  vola: 0.0030 },
+        { symbol: 'AAPL', name: 'Apple Inc.',              type: 'Aktie', basePrice: 212,  vola: 0.0014 },
         { symbol: 'MSFT', name: 'Microsoft Corp.',         type: 'Aktie', basePrice: 465,  vola: 0.0012 },
         { symbol: 'AMD',  name: 'AMD Inc.',                type: 'Aktie', basePrice: 138,  vola: 0.0026 },
+        { symbol: 'META', name: 'Meta Platforms',          type: 'Aktie', basePrice: 715,  vola: 0.0018 },
+        { symbol: 'AMZN', name: 'Amazon.com',              type: 'Aktie', basePrice: 223,  vola: 0.0015 },
+        { symbol: 'GOOGL',name: 'Alphabet (Google)',       type: 'Aktie', basePrice: 182,  vola: 0.0014 },
+        { symbol: 'NFLX', name: 'Netflix Inc.',            type: 'Aktie', basePrice: 1240, vola: 0.0017 },
+        { symbol: 'AVGO', name: 'Broadcom Inc.',           type: 'Aktie', basePrice: 275,  vola: 0.0020 },
+        // --- Day-Trading-Favoriten (hohe Volatilität – Vorsicht!) ---
+        { symbol: 'PLTR', name: 'Palantir Technologies',   type: 'Aktie', basePrice: 142,  vola: 0.0034 },
+        { symbol: 'COIN', name: 'Coinbase Global',         type: 'Aktie', basePrice: 355,  vola: 0.0038 },
+        { symbol: 'MSTR', name: 'MicroStrategy (Strategy)',type: 'Aktie', basePrice: 390,  vola: 0.0045 },
+        { symbol: 'HOOD', name: 'Robinhood Markets',       type: 'Aktie', basePrice: 98,   vola: 0.0036 },
+        { symbol: 'SMCI', name: 'Super Micro Computer',    type: 'Aktie', basePrice: 47,   vola: 0.0040 },
+        { symbol: 'GME',  name: 'GameStop Corp.',          type: 'Aktie', basePrice: 27,   vola: 0.0042 },
+        { symbol: 'SOFI', name: 'SoFi Technologies',       type: 'Aktie', basePrice: 21,   vola: 0.0035 },
+        // --- Deutsche Trading-Favoriten (Live-Daten: nur mit Bezahl-Tarif) ---
+        { symbol: 'RHM',  name: 'Rheinmetall AG',          type: 'Aktie', basePrice: 1750, vola: 0.0026 },
         { symbol: 'SAP',  name: 'SAP SE',                  type: 'Aktie', basePrice: 260,  vola: 0.0013 },
         { symbol: 'SIE',  name: 'Siemens AG',              type: 'Aktie', basePrice: 218,  vola: 0.0012 },
+        { symbol: 'ENR',  name: 'Siemens Energy',          type: 'Aktie', basePrice: 92,   vola: 0.0030 },
+        { symbol: 'IFX',  name: 'Infineon Technologies',   type: 'Aktie', basePrice: 37,   vola: 0.0024 },
+        { symbol: 'DBK',  name: 'Deutsche Bank',           type: 'Aktie', basePrice: 27,   vola: 0.0022 },
     ];
+
+    // Gruppenüberschriften für die Watchlist-Anzeige
+    const GROUP_START = {
+        SPY: 'ETFs',
+        NVDA: 'US-Schwergewichte',
+        PLTR: 'Trading-Favoriten (sehr volatil)',
+        RHM: 'Deutschland',
+    };
+    let currentGroup = '';
+    for (const w of WATCHLIST) {
+        if (GROUP_START[w.symbol]) currentGroup = GROUP_START[w.symbol];
+        w.group = currentGroup;
+    }
 
     const INTERVALS = {
         '1min':  { minutes: 1,  label: '1 Min',  days: 2 },

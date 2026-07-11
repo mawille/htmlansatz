@@ -358,7 +358,15 @@
     function renderWatchlist() {
         const ul = el('watchlist');
         ul.innerHTML = '';
+        let lastGroup = null;
         for (const entry of DataProvider.WATCHLIST) {
+            if (entry.group && entry.group !== lastGroup) {
+                lastGroup = entry.group;
+                const header = document.createElement('li');
+                header.className = 'wl-group';
+                header.textContent = entry.group;
+                ul.appendChild(header);
+            }
             const li = document.createElement('li');
             li.dataset.symbol = entry.symbol;
             li.className = entry.symbol === state.symbol ? 'active' : '';
