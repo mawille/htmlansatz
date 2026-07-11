@@ -125,7 +125,84 @@
         state.lastSignals = result;
         renderPosition();
         renderRecommendation();
+        renderBacktest();
         renderSimpleView();
+    }
+
+    /* ---------- Backtest ---------- */
+
+    function renderBacktest() {
+        if (!state.candles.length || !state.ind) return;
+        const opts = {
+            capital: parseFloat(el('capital').value) || 0,
+            riskPct: parseFloat(el('risk').value) || 0,
+            fee: parseFloat(el('bt-fee').value) || 0,
+            allowShort: el('bt-short').checked,
+        };
+        const result = Backtest.run(state.candles, state.ind, opts);
+        state.lastBacktest = result;
+        const s = result.stats;
+
+        el('bt-warning').innerHTML = state.live ? '' :
+            '<p class="bt-demo-note">⚠️ Demo-Daten: Dieses Ergebnis ist nur eine Spielerei. ' +
+            'Lade Live-Daten für eine echte Aussage.</p>';
+
+        const stats = el('bt-stats');
+        if (s.count === 0) {
+            stats.innerHTML = '<p class="muted">Keine Trades im geladenen Zeitraum – die Strategie hat hier nie ausgelöst.</p>';
+            el('bt-trades').innerHTML = '';
+            Backtest.drawEquity(el('bt-equity'), [0, 0]);
+            renderSimpleBacktest(result, opts);
+            return;
+        }
+        const pf = s.profitFactor === Infinity ? '∞' : s.profitFactor.toFixed(2);
+        stats.innerHTML = `
+            <div class="bt-grid">
+                <div class="bt-cell"><span>Ergebnis</span><strong class="${s.total >= 0 ? 'pos' : 'neg'}">${s.total >= 0 ? '+' : ''}${fmt(s.total)} € (${s.totalPct >= 0 ? '+' : ''}${fmt(s.totalPct)} %)</strong></div>
+                <div class="bt-cell"><span>Trades</span><strong>${s.count} (${s.wins} ✓ / ${s.losses} ✗)</strong></div>
+                <div class="bt-cell"><span>Trefferquote</span><strong>${s.winRate.toFixed(0)} %</strong></div>
+                <div class="bt-cell"><span>Profitfaktor</span><strong>${pf}</strong></div>
+                <div class="bt-cell"><span>Ø Gewinn / Ø Verlust</span><strong>${fmt(s.avgWin)} € / ${fmt(s.avgLoss)} €</strong></div>
+                <div class="bt-cell"><span>Max. Drawdown</span><strong class="neg">−${fmt(s.maxDrawdown)} €</strong></div>
+                <div class="bt-cell"><span>Bester / schlechtester Trade</span><strong>${s.best >= 0 ? '+' : ''}${fmt(s.best)} € / ${fmt(s.worst)} €</strong></div>
+                <div class="bt-cell"><span>Gebühren gesamt</span><strong>−${fmt(s.fees)} €</strong></div>
+            </div>`;
+
+        Backtest.drawEquity(el('bt-equity'), result.equity);
+
+        const table = el('bt-trades');
+        const rows = result.trades.map(t => {
+            const d = new Date(t.entryTime);
+            return `<tr>
+                <td>${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} ${d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</td>
+                <td class="${t.dir === 1 ? 'pos' : 'neg'}">${t.dir === 1 ? 'Long' : 'Short'}</td>
+                <td>${fmt(t.entry)} → ${fmt(t.exit)}</td>
+                <td>${t.reason}</td>
+                <td class="${t.pnl >= 0 ? 'pos' : 'neg'}">${t.pnl >= 0 ? '+' : ''}${fmt(t.pnl)} €</td>
+            </tr>`;
+        }).join('');
+        table.innerHTML = `<tr><th>Einstieg</th><th>Richtung</th><th>Kurs</th><th>Ausstieg</th><th>Ergebnis</th></tr>${rows}`;
+
+        renderSimpleBacktest(result, opts);
+    }
+
+    function renderSimpleBacktest(result, opts) {
+        const s = result.stats;
+        const days = Math.max(1, Math.round((state.candles[state.candles.length - 1].time - state.candles[0].time) / 86400000));
+        if (s.count === 0) {
+            el('s-bt-summary').textContent = 'In den letzten ' + days + ' Tagen hätte die Strategie hier gar nicht gehandelt.';
+            el('s-bt-detail').textContent = 'Das ist nicht schlimm – kein Signal heißt: lieber gar kein Trade als ein schlechter.';
+        } else {
+            el('s-bt-summary').innerHTML =
+                `Hätte man die Signale des Tools in den letzten ${days} Tagen automatisch befolgt ` +
+                `(mit ${fmt(opts.capital)} € und ${opts.riskPct.toLocaleString('de-DE')} % Risiko pro Trade), ` +
+                `stünden jetzt <strong class="${s.total >= 0 ? 'pos' : 'neg'}">${s.total >= 0 ? '+' : ''}${fmt(s.total)} €</strong> auf dem Zettel.`;
+            el('s-bt-detail').textContent =
+                `${s.count} Trades, davon ${s.wins} gewonnen und ${s.losses} verloren (Trefferquote ${s.winRate.toFixed(0)} %). ` +
+                `Zwischendurch lag das Konto bis zu ${fmt(s.maxDrawdown)} € im Minus – solche Durststrecken muss man aushalten können. ` +
+                (state.live ? '' : 'Achtung: Das sind simulierte Demo-Kurse, keine echten.');
+        }
+        Backtest.drawEquity(el('s-bt-equity'), result.equity.length > 1 ? result.equity : [0, 0]);
     }
 
     /* ---------- Empfehlung (Profi-Ansicht) ---------- */
@@ -187,9 +264,13 @@
         el('pro-panel').classList.toggle('hidden', view !== 'pro');
         el('simple-chart-section').classList.toggle('hidden', view !== 'simple');
         el('simple-panel').classList.toggle('hidden', view !== 'simple');
-        // Der zuvor versteckte Canvas hatte Größe 0 – nach dem Einblenden neu zeichnen
+        // Die zuvor versteckten Canvas-Elemente hatten Größe 0 – neu zeichnen
         requestAnimationFrame(() => {
             if (view === 'pro') chart.draw(); else simpleChart.draw();
+            if (state.lastBacktest) {
+                const eq = state.lastBacktest.equity.length > 1 ? state.lastBacktest.equity : [0, 0];
+                Backtest.drawEquity(el(view === 'pro' ? 'bt-equity' : 's-bt-equity'), eq);
+            }
         });
     }
 
@@ -413,9 +494,14 @@
             el(to).value = el(from).value;
             renderPosition();
             renderSimplePlan();
+            renderBacktest();
         });
         syncInputs('s-capital', 'capital');
         syncInputs('s-risk', 'risk');
+
+        // Backtest-Einstellungen
+        el('bt-fee').addEventListener('input', renderBacktest);
+        el('bt-short').addEventListener('change', renderBacktest);
 
         // Intervall-Buttons
         document.querySelectorAll('#intervals button').forEach(btn => {
@@ -456,11 +542,13 @@
             el('s-capital').value = el('capital').value;
             renderPosition();
             renderSimplePlan();
+            renderBacktest();
         });
         el('risk').addEventListener('input', () => {
             el('s-risk').value = el('risk').value;
             renderPosition();
             renderSimplePlan();
+            renderBacktest();
         });
 
         // Aktualisieren-Button

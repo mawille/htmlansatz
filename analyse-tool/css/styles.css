@@ -293,6 +293,57 @@ table.plan tr.hl td { color: var(--accent); font-size: 13.5px; }
 }
 .simple-rules li:last-child { border-bottom: none; }
 
+/* ---------- Backtest ---------- */
+
+.bt-demo-note {
+    font-size: 12px;
+    color: #f5c542;
+    background: rgba(245, 197, 66, 0.07);
+    border: 1px solid rgba(245, 197, 66, 0.3);
+    border-radius: 6px;
+    padding: 7px 9px;
+    margin-bottom: 8px;
+}
+
+.bt-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.bt-cell {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+.bt-cell span { display: block; font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+.bt-cell strong { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+.bt-equity {
+    width: 100%;
+    height: 70px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin: 4px 0 6px;
+}
+
+.check-label { display: flex; align-items: center; gap: 6px; align-self: end; padding-bottom: 6px; cursor: pointer; }
+
+.bt-trades-wrap { max-height: 220px; overflow-y: auto; margin-top: 6px; }
+.bt-trades { width: 100%; border-collapse: collapse; font-size: 11px; }
+.bt-trades th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 4px 4px;
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+}
+.bt-trades td { padding: 4px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+
 /* ---------- Einsteiger-Ansicht ---------- */
 
 .simple-summary {

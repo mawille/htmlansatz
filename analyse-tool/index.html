@@ -120,6 +120,30 @@
                 <div id="position-body"></div>
             </section>
 
+            <section class="card">
+                <h2>Backtest der Strategie</h2>
+                <p class="muted">Simuliert die Marker-Signale (EMA-Kreuz + VWAP) über die geladene
+                   Historie: Einstieg zur Folgekerze, Stop 1,5 × ATR, Ziel 1,5 R, Ausstieg spätestens
+                   zum Tagesschluss.</p>
+                <div class="calc-inputs">
+                    <label>Gebühr je Order (€)
+                        <input id="bt-fee" type="number" value="1" min="0" step="0.5">
+                    </label>
+                    <label class="check-label">
+                        <input id="bt-short" type="checkbox" checked> Short-Trades simulieren
+                    </label>
+                </div>
+                <div id="bt-warning"></div>
+                <div id="bt-stats" class="bt-stats"></div>
+                <canvas id="bt-equity" class="bt-equity"></canvas>
+                <details>
+                    <summary>Alle simulierten Trades</summary>
+                    <div class="bt-trades-wrap">
+                        <table id="bt-trades" class="bt-trades"></table>
+                    </div>
+                </details>
+            </section>
+
             <p class="disclaimer">⚠️ Nur zu Analyse- und Lernzwecken. Keine Anlageberatung –
                Day-Trading ist hochriskant und kann zum Totalverlust führen.</p>
         </aside>
@@ -175,6 +199,16 @@
             </section>
 
             <section class="card">
+                <h2>Hätte sich das gelohnt?</h2>
+                <p id="s-bt-summary" class="verdict-text"></p>
+                <p id="s-bt-detail" class="muted"></p>
+                <canvas id="s-bt-equity" class="bt-equity"></canvas>
+                <p class="muted">Die Linie zeigt, wie sich das Ergebnis Trade für Trade entwickelt
+                   hätte. Wichtig: Was in der Vergangenheit funktioniert hat, muss morgen nicht
+                   funktionieren – und mit Demo-Daten ist das nur eine Übung.</p>
+            </section>
+
+            <section class="card">
                 <h2>Kleines Lexikon</h2>
                 <details>
                     <summary>Was ist eine Aktie?</summary>
@@ -217,6 +251,7 @@
     <script src="js/data.js"></script>
     <script src="js/signals.js"></script>
     <script src="js/recommendation.js"></script>
+    <script src="js/backtest.js"></script>
     <script src="js/chart.js"></script>
     <script src="js/simple-chart.js"></script>
     <script src="js/app.js"></script>
