@@ -128,6 +128,20 @@ button:hover { border-color: var(--accent); }
     margin-bottom: 2px;
 }
 
+.watchlist li.wl-group {
+    cursor: default;
+    padding: 10px 4px 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    margin-bottom: 4px;
+}
+.watchlist li.wl-group:hover { background: none; }
+
 .watchlist li:hover { background: var(--panel-2); }
 .watchlist li.active { background: var(--panel-2); border-color: var(--accent); }
 
