@@ -53,6 +53,7 @@
                     <label><input id="ov-ema" type="checkbox" checked> EMA 9/20</label>
                     <label><input id="ov-vwap" type="checkbox" checked> VWAP</label>
                     <label><input id="ov-bollinger" type="checkbox" checked> Bollinger</label>
+                    <label><input id="ov-markers" type="checkbox" checked> Kauf/Verkauf-Marker</label>
                 </div>
             </div>
             <canvas id="chart"></canvas>
@@ -79,6 +80,23 @@
 
         <!-- Analyse (Profi-Ansicht) -->
         <aside id="pro-panel" class="panel">
+            <section class="card">
+                <h2>Empfehlung</h2>
+                <div class="verdict-row">
+                    <span id="reco-action" class="verdict neutral">–</span>
+                    <span id="reco-conf" class="muted"></span>
+                </div>
+                <ul id="reco-checks" class="signal-list"></ul>
+                <div id="reco-timing" class="timing-box"></div>
+                <details class="timing-details">
+                    <summary>Beste Handelszeiten (Faustregeln)</summary>
+                    <ul id="timing-rules" class="timing-rules"></ul>
+                    <p class="muted">Dazu: nie in den ersten 15 Minuten nach Eröffnung handeln ·
+                       freitags ab 16 Uhr keine neuen Positionen (Wochenend-Risiko) ·
+                       vor wichtigen Terminen (Zinsentscheide, Quartalszahlen) flach bleiben.</p>
+                </details>
+            </section>
+
             <section class="card">
                 <h2>Signal-Auswertung</h2>
                 <div class="verdict-row">
@@ -120,6 +138,27 @@
                 </div>
                 <p class="muted">Das Tool prüft mehrere Anzeichen im Kursverlauf. Hier sind sie einzeln erklärt:</p>
                 <ul id="s-signal-list" class="signal-list simple"></ul>
+            </section>
+
+            <section class="card">
+                <h2>Was würde das Tool jetzt tun?</h2>
+                <div class="verdict-row">
+                    <span id="s-reco-action" class="verdict neutral">–</span>
+                </div>
+                <p id="s-reco-text" class="verdict-text"></p>
+                <ul id="s-reco-warnings" class="signal-list simple"></ul>
+                <div id="s-reco-timing" class="timing-box"></div>
+                <details>
+                    <summary>Wann ist eigentlich eine gute Zeit zum Handeln?</summary>
+                    <p>Die Börse hat einen Tagesrhythmus – ein paar Faustregeln:</p>
+                    <ul class="simple-rules">
+                        <li>🕘 <strong>Die ersten 15 Minuten</strong> nach Börsenöffnung (9:00 und 15:30 Uhr) sind hektisch – erst mal nur zuschauen.</li>
+                        <li>☀️ <strong>9:15–11:30 Uhr</strong> ist eine gute Zeit für deutsche Aktien und ETFs.</li>
+                        <li>🥪 <strong>Über Mittag (11:30–15:30 Uhr)</strong> passiert wenig – viele falsche Signale.</li>
+                        <li>⭐ <strong>15:45–17:30 Uhr</strong> ist meist die beste Zeit: Europa und die USA handeln gleichzeitig.</li>
+                        <li>📅 <strong>Freitagnachmittag</strong> lieber nichts Neues kaufen – übers Wochenende kann viel passieren.</li>
+                    </ul>
+                </details>
             </section>
 
             <section class="card">
@@ -177,6 +216,7 @@
     <script src="js/indicators.js"></script>
     <script src="js/data.js"></script>
     <script src="js/signals.js"></script>
+    <script src="js/recommendation.js"></script>
     <script src="js/chart.js"></script>
     <script src="js/simple-chart.js"></script>
     <script src="js/app.js"></script>

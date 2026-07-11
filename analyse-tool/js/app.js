@@ -47,6 +47,7 @@
             state.live = live;
             state.ind = computeIndicators(candles);
             chart.setData(candles, state.ind);
+            chart.setMarkers(Recommendation.markers(candles, state.ind));
             simpleChart.setData(candles);
             status.textContent = live ? '● Live-Daten (Twelve Data)' : '● Demo-Daten (simuliert)';
             status.className = live ? 'status live' : 'status demo';
@@ -63,6 +64,7 @@
                 state.live = false;
                 state.ind = computeIndicators(candles);
                 chart.setData(candles, state.ind);
+                chart.setMarkers(Recommendation.markers(candles, state.ind));
                 simpleChart.setData(candles);
                 renderHeader();
                 renderSignals();
@@ -122,7 +124,56 @@
         state.lastVerdict = result.verdict;
         state.lastSignals = result;
         renderPosition();
+        renderRecommendation();
         renderSimpleView();
+    }
+
+    /* ---------- Empfehlung (Profi-Ansicht) ---------- */
+
+    function verdictClass(action) {
+        return action === 'KAUFEN' ? 'long' : action === 'VERKAUFEN' ? 'short' : 'neutral';
+    }
+
+    function timingClass(quality) {
+        return quality >= 3 ? 'good' : quality === 2 ? 'ok' : quality === 1 ? 'weak' : 'closed';
+    }
+
+    function renderRecommendation() {
+        if (!state.candles.length || !state.ind || !state.lastSignals) return;
+        const reco = Recommendation.recommend(state.candles, state.ind, state.lastSignals);
+        state.lastReco = reco;
+
+        const actionEl = el('reco-action');
+        actionEl.textContent = reco.action;
+        actionEl.className = 'verdict ' + verdictClass(reco.action);
+        el('reco-conf').textContent = reco.downgraded
+            ? `auf ABWARTEN gestuft (${reco.passed}/${reco.total} Kriterien erfüllt)`
+            : `${reco.passed}/${reco.total} Kriterien erfüllt`;
+
+        const list = el('reco-checks');
+        list.innerHTML = '';
+        for (const ch of reco.checks) {
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="dot ${ch.ok ? 'long' : 'short'}">${ch.ok ? '✓' : '✗'}</span> ${ch.text}`;
+            list.appendChild(li);
+        }
+
+        const t = reco.timing;
+        el('reco-timing').className = 'timing-box ' + timingClass(t.quality);
+        el('reco-timing').innerHTML =
+            `<strong>Marktphase jetzt (${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr): ${t.name}.</strong> ${t.text}` +
+            (t.fridayWarning ? '<br>📅 Freitagnachmittag: keine neuen Positionen übers Wochenende halten.' : '');
+    }
+
+    function renderTimingRules() {
+        const ul = el('timing-rules');
+        ul.innerHTML = '';
+        for (const r of Recommendation.RULES) {
+            const li = document.createElement('li');
+            li.className = 'q' + r.quality;
+            li.innerHTML = `<span class="rule-time">${r.time}</span> ${r.label}`;
+            ul.appendChild(li);
+        }
     }
 
     /* ---------- Einsteiger-Ansicht ---------- */
@@ -184,7 +235,49 @@
             list.appendChild(li);
         }
 
+        renderSimpleReco();
         renderSimplePlan();
+    }
+
+    function renderSimpleReco() {
+        const reco = state.lastReco
+            || Recommendation.recommend(state.candles, state.ind, state.lastSignals);
+
+        const actionEl = el('s-reco-action');
+        const map = { KAUFEN: 'KAUFEN 🛒', VERKAUFEN: 'VERKAUFEN / NICHT KAUFEN ✋', ABWARTEN: 'ABWARTEN ⏳' };
+        actionEl.textContent = map[reco.action];
+        actionEl.className = 'verdict ' + verdictClass(reco.action);
+
+        let text;
+        if (reco.action === 'KAUFEN') {
+            text = 'Die geprüften Punkte sprechen gerade dafür, dass der Preis eher steigt. ' +
+                'Wer einsteigen will, findet unten im Rechner die passende Stückzahl und Notbremse.';
+        } else if (reco.action === 'VERKAUFEN') {
+            text = 'Die geprüften Punkte sprechen gerade dafür, dass der Preis eher fällt. ' +
+                'Wer Anteile besitzt, kann über einen Verkauf nachdenken. Wer keine hat: jetzt nicht kaufen.';
+        } else if (reco.downgraded) {
+            text = 'Eigentlich zeigen die Anzeichen in eine Richtung – aber zu viele Prüfpunkte sprechen dagegen (siehe unten). ' +
+                'In so einem Fall ist Nichtstun die klügste Entscheidung.';
+        } else {
+            text = 'Die Anzeichen widersprechen sich gerade – kein guter Moment für eine Entscheidung. ' +
+                'Abwarten kostet nichts, ein schlechter Einstieg schon.';
+        }
+        el('s-reco-text').textContent = text;
+
+        // Nur die Gegenargumente auflisten – die sind die wichtige Information
+        const warn = el('s-reco-warnings');
+        warn.innerHTML = '';
+        for (const ch of reco.checks) {
+            if (ch.ok) continue;
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="s-icon">⚠️</span> ${ch.simple}`;
+            warn.appendChild(li);
+        }
+
+        const t = reco.timing;
+        el('s-reco-timing').className = 'timing-box ' + timingClass(t.quality);
+        el('s-reco-timing').innerHTML = `<strong>Übrigens, zur Uhrzeit:</strong> ${t.simple}` +
+            (t.fridayWarning ? '<br>📅 Und: Es ist Freitagnachmittag – was du jetzt kaufst, hältst du übers Wochenende. Das ist ein Extra-Risiko.' : '');
     }
 
     function renderSimplePlan() {
@@ -328,7 +421,7 @@
         });
 
         // Overlay-Checkboxen
-        for (const name of ['ema', 'vwap', 'bollinger']) {
+        for (const name of ['ema', 'vwap', 'bollinger', 'markers']) {
             el('ov-' + name).addEventListener('change', e => chart.setOverlay(name, e.target.checked));
         }
 
@@ -375,7 +468,16 @@
     bindUi();
     setView(state.view);
     renderWatchlist();
+    renderTimingRules();
     loadSymbol();
+
+    // Die Marktphasen-Anzeige minütlich auffrischen (die Uhrzeit läuft weiter)
+    setInterval(() => {
+        if (state.candles.length && state.ind && state.lastSignals) {
+            renderRecommendation();
+            renderSimpleReco();
+        }
+    }, 60000);
 
     // Demo-Daten aller Watchlist-Symbole im Hintergrund für die Kursanzeige laden
     (async () => {

@@ -10,7 +10,8 @@ class TradingChart {
         this.ctx = canvas.getContext('2d');
         this.candles = [];
         this.ind = null;
-        this.overlays = { ema: true, vwap: true, bollinger: true };
+        this.markers = [];
+        this.overlays = { ema: true, vwap: true, bollinger: true, markers: true };
 
         // Sichtfenster (Indizes in this.candles)
         this.viewStart = 0;
@@ -53,6 +54,11 @@ class TradingChart {
 
     setOverlay(name, on) {
         this.overlays[name] = on;
+        this.draw();
+    }
+
+    setMarkers(markers) {
+        this.markers = markers || [];
         this.draw();
     }
 
@@ -225,6 +231,38 @@ class TradingChart {
             }
             if (this.overlays.vwap) {
                 this._drawLine(ctx, xOf, yOf, this.ind.vwap, this.colors.vwap, 1.4, [5, 4]);
+            }
+        }
+
+        // Kauf-/Verkaufs-Markierungen (EMA-Kreuz mit VWAP-Bestätigung)
+        if (this.overlays.markers && this.markers.length) {
+            ctx.font = 'bold 9px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            for (const m of this.markers) {
+                if (m.index < this.viewStart || m.index >= this.viewEnd) continue;
+                const cd = this.candles[m.index];
+                const x = xOf(m.index);
+                if (m.type === 'buy') {
+                    const y = yOf(cd.low) + 6;
+                    ctx.fillStyle = this.colors.up;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x - 5, y + 8);
+                    ctx.lineTo(x + 5, y + 8);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillText('K', x, y + 19);
+                } else {
+                    const y = yOf(cd.high) - 6;
+                    ctx.fillStyle = this.colors.down;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x - 5, y - 8);
+                    ctx.lineTo(x + 5, y - 8);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillText('V', x, y - 12);
+                }
             }
         }
 
