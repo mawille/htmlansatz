@@ -449,12 +449,75 @@ details p { margin-top: 6px; color: var(--muted); line-height: 1.55; }
     line-height: 1.5;
 }
 
+/* ---------- Trading-Tagebuch ---------- */
+
+.journal-area {
+    grid-column: 2 / -1;
+    overflow-y: auto;
+    min-width: 0;
+}
+
+.journal-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) 1fr;
+    gap: 10px;
+    align-items: start;
+}
+
+.j-list-card { grid-column: 1 / -1; }
+
+.journal-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.journal-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 0;
+}
+.journal-form input, .journal-form select { width: 100%; min-width: 0; }
+.journal-form .j-wide { grid-column: 1 / -1; }
+.journal-form button { font-weight: 600; padding: 8px; }
+
+.j-insights p {
+    font-size: 12.5px;
+    line-height: 1.5;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+}
+
+.journal-actions { display: flex; gap: 8px; margin-bottom: 8px; }
+button.danger { border-color: rgba(239, 83, 80, 0.5); color: var(--down); }
+button.danger:hover { background: rgba(239, 83, 80, 0.1); }
+
+.j-trades-wrap { max-height: 340px; }
+.j-note-cell {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+}
+.j-delete {
+    padding: 1px 7px;
+    font-size: 11px;
+    border-color: transparent;
+    color: var(--muted);
+}
+.j-delete:hover { color: var(--down); border-color: var(--down); }
+
 /* ---------- Responsiv ---------- */
 
 @media (max-width: 1100px) {
     .layout { grid-template-columns: 200px 1fr; }
     .panel { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
     .panel .card { flex: 1 1 300px; }
+    .journal-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 700px) {

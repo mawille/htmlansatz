@@ -12,6 +12,7 @@
         <div class="view-toggle" role="group" aria-label="Ansicht wählen">
             <button id="view-pro-btn" class="active">Profi</button>
             <button id="view-simple-btn">Einsteiger</button>
+            <button id="view-journal-btn">Tagebuch</button>
         </div>
         <form id="symbol-form">
             <input id="symbol-input" type="text" placeholder="Symbol suchen (z. B. AAPL)" autocomplete="off">
@@ -245,6 +246,58 @@
             <p class="disclaimer">⚠️ Dieses Tool ist zum Lernen gedacht und keine Anlageberatung.
                Beim Day-Trading kann man sein eingesetztes Geld komplett verlieren.</p>
         </aside>
+
+        <!-- Trading-Tagebuch -->
+        <section id="journal-section" class="journal-area hidden">
+            <div class="journal-grid">
+                <section class="card">
+                    <h2>Neuen Trade erfassen</h2>
+                    <p class="muted">Jeden Trade sofort notieren – vor allem <em>warum</em> du eingestiegen
+                       bist. Nach ein paar Wochen siehst du hier, was bei dir funktioniert und was nicht.</p>
+                    <form id="journal-form" class="journal-form">
+                        <label>Datum &amp; Uhrzeit
+                            <input id="j-time" type="datetime-local" required></label>
+                        <label>Symbol
+                            <input id="j-symbol" type="text" required placeholder="z. B. NVDA"></label>
+                        <label>Richtung
+                            <select id="j-dir">
+                                <option value="1">Long (auf steigende Kurse)</option>
+                                <option value="-1">Short (auf fallende Kurse)</option>
+                            </select></label>
+                        <label>Stückzahl
+                            <input id="j-shares" type="number" min="1" step="1" required></label>
+                        <label>Einstiegskurs (€)
+                            <input id="j-entry" type="number" step="0.01" min="0.01" required></label>
+                        <label>Ausstiegskurs (€)
+                            <input id="j-exit" type="number" step="0.01" min="0.01" required></label>
+                        <label>Gebühren gesamt (€)
+                            <input id="j-fees" type="number" step="0.5" min="0" value="2"></label>
+                        <label class="j-wide">Warum eingestiegen? (Notiz)
+                            <input id="j-note" type="text" placeholder="z. B. EMA-Kreuz über VWAP, beste Phase, Ampel grün"></label>
+                        <p id="j-preview" class="muted j-wide"></p>
+                        <button type="submit" class="j-wide">💾 Trade speichern</button>
+                    </form>
+                </section>
+
+                <section class="card">
+                    <h2>Deine Bilanz</h2>
+                    <div id="j-stats"></div>
+                    <canvas id="j-equity" class="bt-equity"></canvas>
+                    <div id="j-insights" class="j-insights"></div>
+                </section>
+
+                <section class="card j-list-card">
+                    <h2>Alle Trades</h2>
+                    <div class="journal-actions">
+                        <button id="j-export">⬇️ Als CSV exportieren</button>
+                        <button id="j-clear" class="danger">🗑️ Alle löschen</button>
+                    </div>
+                    <div class="bt-trades-wrap j-trades-wrap">
+                        <table id="j-table" class="bt-trades"></table>
+                    </div>
+                </section>
+            </div>
+        </section>
     </main>
 
     <script src="js/indicators.js"></script>
@@ -252,6 +305,7 @@
     <script src="js/signals.js"></script>
     <script src="js/recommendation.js"></script>
     <script src="js/backtest.js"></script>
+    <script src="js/journal.js"></script>
     <script src="js/chart.js"></script>
     <script src="js/simple-chart.js"></script>
     <script src="js/app.js"></script>
