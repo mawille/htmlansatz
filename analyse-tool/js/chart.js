@@ -43,12 +43,27 @@ class TradingChart {
         this._bindEvents();
     }
 
-    setData(candles, indicators) {
+    setData(candles, indicators, keepView = false) {
+        const prevLen = this.candles.length;
+        const wasAtEnd = this.viewEnd >= prevLen;
+        const span = this.viewEnd - this.viewStart;
         this.candles = candles;
         this.ind = indicators;
-        const visible = Math.min(150, candles.length);
-        this.viewEnd = candles.length;
-        this.viewStart = candles.length - visible;
+        if (keepView && prevLen > 0 && span > 0) {
+            // Auto-Update: Zoomstufe behalten; wer am rechten Rand war,
+            // folgt den neuen Kerzen, wer zurückgeblättert hat, bleibt stehen
+            if (wasAtEnd) {
+                this.viewEnd = candles.length;
+                this.viewStart = Math.max(0, candles.length - span);
+            } else {
+                this.viewEnd = Math.min(this.viewEnd, candles.length);
+                this.viewStart = Math.max(0, this.viewEnd - span);
+            }
+        } else {
+            const visible = Math.min(150, candles.length);
+            this.viewEnd = candles.length;
+            this.viewStart = candles.length - visible;
+        }
         this.draw();
     }
 
