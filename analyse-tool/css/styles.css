@@ -449,6 +449,82 @@ details p { margin-top: 6px; color: var(--muted); line-height: 1.55; }
     line-height: 1.5;
 }
 
+/* ---------- Kurs-Alarme & Benachrichtigungen ---------- */
+
+.auto-refresh {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.auto-refresh:has(input:checked) { color: var(--up); }
+
+.alert-form {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.al-symbol { font-weight: 700; }
+.alert-form input { width: 90px; }
+
+.alert-list { list-style: none; margin-bottom: 8px; }
+.alert-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+}
+.alert-list li:last-child { border-bottom: none; }
+.alert-list li.triggered { color: var(--muted); }
+.alert-list li.triggered em { font-style: normal; color: #f5c542; }
+.al-delete {
+    padding: 1px 7px;
+    font-size: 11px;
+    border-color: transparent;
+    color: var(--muted);
+}
+.al-delete:hover { color: var(--down); border-color: var(--down); }
+
+/* Toasts unten rechts */
+#toast-container {
+    position: fixed;
+    right: 14px;
+    bottom: 14px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 340px;
+}
+.toast {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    animation: toast-in 0.25s ease-out;
+    transition: opacity 0.3s, transform 0.3s;
+}
+.toast.good { border-left-color: var(--up); }
+.toast.bad { border-left-color: var(--down); }
+.toast.gone { opacity: 0; transform: translateX(20px); }
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* ---------- Trading-Tagebuch ---------- */
 
 .journal-area {

@@ -37,7 +37,7 @@
 
     /* ---------- Laden & Rendern ---------- */
 
-    async function loadSymbol() {
+    async function loadSymbol(keepView = false) {
         const status = el('status');
         status.textContent = 'Lade Daten …';
         status.className = 'status';
@@ -46,15 +46,17 @@
             state.candles = candles;
             state.live = live;
             state.ind = computeIndicators(candles);
-            chart.setData(candles, state.ind);
+            chart.setData(candles, state.ind, keepView);
             chart.setMarkers(Recommendation.markers(candles, state.ind));
             simpleChart.setData(candles);
-            status.textContent = live ? '● Live-Daten (Twelve Data)' : '● Demo-Daten (simuliert)';
+            status.textContent = (state.autoTimer ? '⟳ ' : '') +
+                (live ? '● Live-Daten (Twelve Data)' : '● Demo-Daten (simuliert)');
             status.className = live ? 'status live' : 'status demo';
             renderHeader();
             renderSignals();
             renderPosition();
             updateWatchlistQuote(state.symbol, candles);
+            checkAlerts();
         } catch (err) {
             status.textContent = 'Fehler: ' + err.message + ' – wechsle in den Demo-Modus.';
             status.className = 'status error';
@@ -218,6 +220,17 @@
     function renderRecommendation() {
         if (!state.candles.length || !state.ind || !state.lastSignals) return;
         const reco = Recommendation.recommend(state.candles, state.ind, state.lastSignals);
+
+        // Meldung, wenn die Empfehlung für dieses Symbol umschlägt
+        if (!state.prevAction) state.prevAction = {};
+        const prev = state.prevAction[state.symbol];
+        if (prev && prev !== reco.action) {
+            Alerts.notify(
+                `${state.symbol}: Empfehlung jetzt ${reco.action}`,
+                `Vorher ${prev} – ${reco.passed}/${reco.total} Kriterien erfüllt.`,
+                reco.action === 'KAUFEN' ? 'good' : reco.action === 'VERKAUFEN' ? 'bad' : 'info');
+        }
+        state.prevAction[state.symbol] = reco.action;
         state.lastReco = reco;
 
         const actionEl = el('reco-action');
@@ -441,6 +454,72 @@
             ${plan.cappedByCapital ? '<p class="muted">Stückzahl durch das Kapital begrenzt (kein Hebel eingerechnet).</p>' : ''}`;
     }
 
+    /* ---------- Kurs-Alarme & Auto-Update ---------- */
+
+    function checkAlerts() {
+        if (!state.candles.length) return;
+        const price = state.candles[state.candles.length - 1].close;
+        for (const a of Alerts.check(state.symbol, price)) {
+            Alerts.notify(
+                `🔔 Alarm: ${a.symbol}`,
+                `Kurs ${a.type === 'above' ? 'über' : 'unter'} ${fmt(a.price)} € (aktuell ${fmt(price)} €).`,
+                a.type === 'above' ? 'good' : 'bad');
+        }
+        renderAlerts();
+    }
+
+    function renderAlerts() {
+        el('al-symbol').textContent = state.symbol;
+        const list = el('al-list');
+        const alerts = Alerts.load();
+        list.innerHTML = '';
+        if (!alerts.length) {
+            list.innerHTML = '<li class="muted">Noch keine Alarme angelegt.</li>';
+            return;
+        }
+        for (const a of alerts) {
+            const li = document.createElement('li');
+            li.className = a.triggered ? 'triggered' : '';
+            li.innerHTML = `
+                <span>${a.triggered ? '🔕' : '🔔'} <strong>${a.symbol}</strong>
+                    ${a.type === 'above' ? 'steigt über' : 'fällt unter'} ${fmt(a.price)} €
+                    ${a.triggered ? '<em>– ausgelöst</em>' : ''}</span>
+                <button class="al-delete" data-id="${a.id}" title="Alarm löschen">✕</button>`;
+            list.appendChild(li);
+        }
+    }
+
+    function bindAlerts() {
+        el('al-add').addEventListener('click', () => {
+            const price = parseFloat(el('al-price').value);
+            if (!(price > 0)) { el('al-price').focus(); return; }
+            Alerts.requestPermission();
+            Alerts.add(state.symbol, el('al-type').value, price);
+            el('al-price').value = '';
+            renderAlerts();
+            checkAlerts(); // ggf. sofort auslösen, wenn Bedingung schon erfüllt ist
+        });
+        el('al-list').addEventListener('click', e => {
+            const btn = e.target.closest('.al-delete');
+            if (!btn) return;
+            Alerts.remove(btn.dataset.id);
+            renderAlerts();
+        });
+    }
+
+    function setAutoRefresh(on) {
+        if (state.autoTimer) { clearInterval(state.autoTimer); state.autoTimer = null; }
+        if (on) {
+            state.autoTimer = setInterval(() => {
+                // Im Hintergrund-Tab keine API-Abfragen verschwenden
+                if (!document.hidden) loadSymbol(true);
+            }, 60000);
+        }
+        // Status-Anzeige aktualisieren
+        const status = el('status');
+        status.textContent = (on ? '⟳ ' : '') + status.textContent.replace(/^⟳ /, '');
+    }
+
     /* ---------- Trading-Tagebuch ---------- */
 
     function prefillJournalForm() {
@@ -624,6 +703,10 @@
         el('view-simple-btn').addEventListener('click', () => setView('simple'));
         el('view-journal-btn').addEventListener('click', () => setView('journal'));
         bindJournal();
+        bindAlerts();
+
+        // Auto-Update (60-Sekunden-Takt)
+        el('auto-refresh').addEventListener('change', e => setAutoRefresh(e.target.checked));
 
         // Budget/Risiko beider Ansichten synchron halten
         const syncInputs = (from, to) => el(from).addEventListener('input', () => {
@@ -701,6 +784,7 @@
     setView(state.view);
     renderWatchlist();
     renderTimingRules();
+    renderAlerts();
     loadSymbol();
 
     // Die Marktphasen-Anzeige minütlich auffrischen (die Uhrzeit läuft weiter)
