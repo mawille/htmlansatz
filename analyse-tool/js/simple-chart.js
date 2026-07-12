@@ -27,6 +27,18 @@ class SimpleChart {
         });
         canvas.addEventListener('mouseleave', () => { this.mouse = null; this.draw(); });
         window.addEventListener('resize', () => this.draw());
+
+        // Touch: Finger auf der Linie zeigt die Sprechblase
+        const touchPos = e => {
+            const rect = canvas.getBoundingClientRect();
+            this.mouse = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+            this.draw();
+        };
+        canvas.addEventListener('touchstart', touchPos, { passive: true });
+        canvas.addEventListener('touchmove', e => { e.preventDefault(); touchPos(e); }, { passive: false });
+        canvas.addEventListener('touchend', () => {
+            setTimeout(() => { this.mouse = null; this.draw(); }, 2000);
+        }, { passive: true });
     }
 
     setData(candles) {

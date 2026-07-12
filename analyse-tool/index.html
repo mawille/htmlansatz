@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ETF- &amp; Aktien-Analysetool für Day-Trading</title>
+    <meta name="theme-color" content="#151a23">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -361,5 +365,12 @@
     <script src="js/chart.js"></script>
     <script src="js/simple-chart.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        // Service Worker: macht die App installierbar und offline-fähig
+        // (nur über HTTPS, z. B. auf GitHub Pages – lokal per Doppelklick nicht nötig)
+        if ('serviceWorker' in navigator && location.protocol === 'https:') {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
 </body>
 </html>

@@ -640,7 +640,24 @@ button.danger:hover { background: rgba(239, 83, 80, 0.1); }
 }
 
 @media (max-width: 700px) {
-    .layout { grid-template-columns: 1fr; }
-    .sidebar { max-height: 300px; }
-    .panel { flex-direction: column; }
+    .layout { grid-template-columns: 1fr; padding: 6px; gap: 6px; }
+    .sidebar { max-height: 260px; order: 2; }
+    .chart-area { order: 1; padding: 8px; }
+    .panel { flex-direction: column; order: 3; }
+    .journal-area { grid-column: 1; order: 1; }
+
+    .topbar { padding: 8px 10px; gap: 8px; }
+    .topbar h1 { font-size: 15px; }
+    #symbol-form { flex: 1 1 100%; order: 5; }
+    #symbol-input { flex: 1; min-width: 0; }
+    .status { flex-basis: 100%; margin-left: 0; }
+
+    #chart { min-height: 340px; }
+    #simple-chart { min-height: 280px; }
+    .hint { display: none; }
+
+    /* Touch-Ziele vergrößern */
+    .watchlist li { padding: 10px 8px; }
+    button, input, select { padding: 8px 10px; }
+    .intervals button { padding: 8px 9px; }
 }
