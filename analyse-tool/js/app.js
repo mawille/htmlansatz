@@ -266,10 +266,36 @@
         }
 
         const t = reco.timing;
-        el('reco-timing').className = 'timing-box ' + timingClass(t.quality);
+        const econ = EconCalendar.todayWarnings();
+        el('reco-timing').className = 'timing-box ' + timingClass(econ.length ? 1 : t.quality);
         el('reco-timing').innerHTML =
             `<strong>Marktphase jetzt (${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr): ${t.name}.</strong> ${t.text}` +
-            (t.fridayWarning ? '<br>📅 Freitagnachmittag: keine neuen Positionen übers Wochenende halten.' : '');
+            (t.fridayWarning ? '<br>📅 Freitagnachmittag: keine neuen Positionen übers Wochenende halten.' : '') +
+            econ.map(w => '<br>' + w).join('');
+    }
+
+    function renderEconCalendar() {
+        const list = el('econ-list');
+        const events = EconCalendar.upcoming(14);
+        list.innerHTML = '';
+        if (!events.length) {
+            list.innerHTML = '<li class="muted">Keine besonderen Termine in den nächsten zwei Wochen. 🎉</li>';
+            return;
+        }
+        for (const ev of events) {
+            const li = document.createElement('li');
+            li.className = 'impact-' + ev.impact + (ev.daysAway === 0 ? ' today' : '');
+            const when = ev.daysAway === 0 ? 'Heute'
+                : ev.daysAway === 1 ? 'Morgen'
+                : ev.date.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+            li.innerHTML = `
+                <div class="econ-head">
+                    <span class="econ-when">${when}${ev.time !== 'ganztags' ? ', ' + ev.time + ' Uhr' : ''}</span>
+                    <strong>${ev.title}</strong>
+                </div>
+                <div class="econ-advice">${ev.advice}</div>`;
+            list.appendChild(li);
+        }
     }
 
     function renderTimingRules() {
@@ -393,9 +419,11 @@
         }
 
         const t = reco.timing;
-        el('s-reco-timing').className = 'timing-box ' + timingClass(t.quality);
+        const econ = EconCalendar.todayWarnings();
+        el('s-reco-timing').className = 'timing-box ' + timingClass(econ.length ? 1 : t.quality);
         el('s-reco-timing').innerHTML = `<strong>Übrigens, zur Uhrzeit:</strong> ${t.simple}` +
-            (t.fridayWarning ? '<br>📅 Und: Es ist Freitagnachmittag – was du jetzt kaufst, hältst du übers Wochenende. Das ist ein Extra-Risiko.' : '');
+            (t.fridayWarning ? '<br>📅 Und: Es ist Freitagnachmittag – was du jetzt kaufst, hältst du übers Wochenende. Das ist ein Extra-Risiko.' : '') +
+            econ.map(w => '<br>' + w).join('');
     }
 
     function renderSimplePlan() {
@@ -841,6 +869,7 @@
     renderWatchlist();
     renderTimingRules();
     renderAlerts();
+    renderEconCalendar();
     loadSymbol();
 
     // Die Marktphasen-Anzeige minütlich auffrischen (die Uhrzeit läuft weiter)

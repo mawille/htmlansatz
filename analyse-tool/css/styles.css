@@ -449,6 +449,24 @@ details p { margin-top: 6px; color: var(--muted); line-height: 1.55; }
     line-height: 1.5;
 }
 
+/* ---------- Termin-Radar ---------- */
+
+.econ-list { list-style: none; }
+.econ-list li {
+    padding: 8px 0 8px 10px;
+    border-bottom: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    margin-bottom: 2px;
+}
+.econ-list li:last-child { border-bottom: none; }
+.econ-list li.impact-3 { border-left-color: var(--down); }
+.econ-list li.impact-2 { border-left-color: #f5c542; }
+.econ-list li.today { background: rgba(239, 83, 80, 0.06); border-radius: 0 6px 6px 0; }
+.econ-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 12.5px; }
+.econ-when { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.econ-list li.today .econ-when { color: var(--down); font-weight: 700; }
+.econ-advice { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin-top: 2px; }
+
 /* ---------- Indikator-Einstellungen ---------- */
 
 .settings-details { border-bottom: none; padding: 0; }
