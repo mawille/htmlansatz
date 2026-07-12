@@ -54,7 +54,7 @@
                     <span id="symbol-change" class="change"></span>
                 </div>
                 <div class="overlays">
-                    <label><input id="ov-ema" type="checkbox" checked> EMA 9/20</label>
+                    <label><input id="ov-ema" type="checkbox" checked> <span id="ov-ema-label">EMA 9/20</span></label>
                     <label><input id="ov-vwap" type="checkbox" checked> VWAP</label>
                     <label><input id="ov-bollinger" type="checkbox" checked> Bollinger</label>
                     <label><input id="ov-markers" type="checkbox" checked> Kauf/Verkauf-Marker</label>
@@ -125,6 +125,28 @@
             </section>
 
             <section class="card">
+                <details class="settings-details">
+                    <summary><h2>Indikator-Einstellungen</h2></summary>
+                    <div class="settings-grid">
+                        <label>EMA schnell <input id="set-emaFast" type="number" min="2" max="50" step="1"></label>
+                        <label>EMA langsam <input id="set-emaSlow" type="number" min="3" max="200" step="1"></label>
+                        <label>RSI-Periode <input id="set-rsiPeriod" type="number" min="2" max="50" step="1"></label>
+                        <label>RSI überverkauft <input id="set-rsiLow" type="number" min="5" max="49" step="1"></label>
+                        <label>RSI überkauft <input id="set-rsiHigh" type="number" min="51" max="95" step="1"></label>
+                        <label>Bollinger-Periode <input id="set-bbPeriod" type="number" min="5" max="100" step="1"></label>
+                        <label>Bollinger-Faktor <input id="set-bbMult" type="number" min="0.5" max="4" step="0.1"></label>
+                        <label>ATR-Periode <input id="set-atrPeriod" type="number" min="2" max="50" step="1"></label>
+                        <label>Stop-Abstand (× ATR) <input id="set-atrMult" type="number" min="0.5" max="5" step="0.1"></label>
+                        <label>Gewinnziel (R) <input id="set-rr" type="number" min="0.5" max="5" step="0.1"></label>
+                    </div>
+                    <p id="set-hint" class="muted"></p>
+                    <button id="set-reset">Auf Standard zurücksetzen</button>
+                    <p class="muted">Änderungen wirken sofort auf Chart, Signale, Empfehlung, Rechner
+                       und Backtest – ideal, um im Backtest verschiedene Einstellungen zu vergleichen.</p>
+                </details>
+            </section>
+
+            <section class="card">
                 <h2>Kurs-Alarme</h2>
                 <div class="alert-form">
                     <span id="al-symbol" class="al-symbol">SPY</span>
@@ -144,8 +166,8 @@
             <section class="card">
                 <h2>Backtest der Strategie</h2>
                 <p class="muted">Simuliert die Marker-Signale (EMA-Kreuz + VWAP) über die geladene
-                   Historie: Einstieg zur Folgekerze, Stop 1,5 × ATR, Ziel 1,5 R, Ausstieg spätestens
-                   zum Tagesschluss.</p>
+                   Historie: Einstieg zur Folgekerze, Stop und Ziel wie in den Indikator-Einstellungen,
+                   Ausstieg spätestens zum Tagesschluss.</p>
                 <div class="calc-inputs">
                     <label>Gebühr je Order (€)
                         <input id="bt-fee" type="number" value="1" min="0" step="0.5">
@@ -320,6 +342,7 @@
         </section>
     </main>
 
+    <script src="js/settings.js"></script>
     <script src="js/indicators.js"></script>
     <script src="js/data.js"></script>
     <script src="js/signals.js"></script>

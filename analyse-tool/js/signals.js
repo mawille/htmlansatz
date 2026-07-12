@@ -14,7 +14,11 @@ const Signals = (() => {
      *        { ema9, ema20, rsi, macd, bollinger, vwap, atr }
      * @returns {{ items: Array, score: number, verdict: string }}
      */
-    function evaluate(candles, ind) {
+    function evaluate(candles, ind, cfg = {}) {
+        const rsiLow = cfg.rsiLow ?? 30;
+        const rsiHigh = cfg.rsiHigh ?? 70;
+        const fastLabel = 'EMA ' + (cfg.emaFast ?? 9);
+        const slowLabel = 'EMA ' + (cfg.emaSlow ?? 20);
         const i = candles.length - 1;
         const items = [];
         if (i < 30) return { items, score: 0, verdict: 'NEUTRAL' };
@@ -29,13 +33,13 @@ const Signals = (() => {
         if (e9 !== null && e20 !== null) {
             const crossedUp = e9p !== null && e20p !== null && e9p <= e20p && e9 > e20;
             const crossedDown = e9p !== null && e20p !== null && e9p >= e20p && e9 < e20;
-            if (crossedUp) push('EMA-Kreuz', 1, 'EMA 9 kreuzt EMA 20 nach oben (frisches Kaufsignal)',
+            if (crossedUp) push('EMA-Kreuz', 1, `${fastLabel} kreuzt ${slowLabel} nach oben (frisches Kaufsignal)`,
                 'Der Preis-Durchschnitt der letzten Minuten steigt gerade über den längerfristigen Durchschnitt. Viele werten das als frisches Zeichen für steigende Preise.');
-            else if (crossedDown) push('EMA-Kreuz', -1, 'EMA 9 kreuzt EMA 20 nach unten (frisches Verkaufssignal)',
+            else if (crossedDown) push('EMA-Kreuz', -1, `${fastLabel} kreuzt ${slowLabel} nach unten (frisches Verkaufssignal)`,
                 'Der Preis-Durchschnitt der letzten Minuten fällt gerade unter den längerfristigen Durchschnitt. Viele werten das als frisches Zeichen für fallende Preise.');
-            else if (e9 > e20) push('Trend (EMA)', 1, 'EMA 9 über EMA 20 – kurzfristiger Aufwärtstrend',
+            else if (e9 > e20) push('Trend (EMA)', 1, `${fastLabel} über ${slowLabel} – kurzfristiger Aufwärtstrend`,
                 'Der Preis steigt zurzeit eher: Der kurzfristige Durchschnittspreis liegt über dem längerfristigen.');
-            else push('Trend (EMA)', -1, 'EMA 9 unter EMA 20 – kurzfristiger Abwärtstrend',
+            else push('Trend (EMA)', -1, `${fastLabel} unter ${slowLabel} – kurzfristiger Abwärtstrend`,
                 'Der Preis fällt zurzeit eher: Der kurzfristige Durchschnittspreis liegt unter dem längerfristigen.');
         }
 
@@ -52,9 +56,9 @@ const Signals = (() => {
         // 3) RSI: Überkauft/Überverkauft
         const r = ind.rsi[i];
         if (r !== null) {
-            if (r < 30) push('RSI', 1, `RSI ${r.toFixed(1)} – überverkauft, Rebound möglich`,
+            if (r < rsiLow) push('RSI', 1, `RSI ${r.toFixed(1)} – überverkauft, Rebound möglich`,
                 'Der Preis ist zuletzt ungewöhnlich stark gefallen. Oft erholt er sich danach wieder etwas.');
-            else if (r > 70) push('RSI', -1, `RSI ${r.toFixed(1)} – überkauft, Rücksetzer möglich`,
+            else if (r > rsiHigh) push('RSI', -1, `RSI ${r.toFixed(1)} – überkauft, Rücksetzer möglich`,
                 'Der Preis ist zuletzt ungewöhnlich stark gestiegen. Oft folgt darauf eine kleine Verschnaufpause nach unten.');
             else if (r >= 50) push('RSI', 0.5, `RSI ${r.toFixed(1)} – bullischer Bereich`,
                 'Das Kräfteverhältnis der letzten Zeit spricht leicht für die Käufer.');
@@ -113,13 +117,13 @@ const Signals = (() => {
      * Positionsgrößen-Rechner mit ATR-basiertem Stop.
      * @returns {{ stop, target1, target2, riskPerShare, shares, positionValue }}
      */
-    function positionPlan(direction, price, atrValue, capital, riskPct, atrMult = 1.5) {
+    function positionPlan(direction, price, atrValue, capital, riskPct, atrMult = 1.5, rr = 1.5) {
         const riskAmount = capital * (riskPct / 100);
         const stopDist = atrValue * atrMult;
         const sign = direction === 'SHORT' ? -1 : 1;
         const stop = price - sign * stopDist;
-        const target1 = price + sign * stopDist * 1.5; // 1,5 R
-        const target2 = price + sign * stopDist * 3;   // 3 R
+        const target1 = price + sign * stopDist * rr;     // 1 × Ziel-R
+        const target2 = price + sign * stopDist * rr * 2; // 2 × Ziel-R
         let shares = stopDist > 0 ? Math.floor(riskAmount / stopDist) : 0;
         // Ohne Hebel kann die Position nicht größer als das Kapital sein
         const maxShares = price > 0 ? Math.floor(capital / price) : 0;

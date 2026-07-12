@@ -17,16 +17,15 @@
 
 const Backtest = (() => {
 
-    const ATR_MULT = 1.5; // Stop-Abstand, identisch zum Positionsrechner
-    const RR = 1.5;       // Chance-Risiko-Verhältnis fürs Gewinnziel
-
     /**
      * @param {Array} candles Kerzen
      * @param {Object} ind vorberechnete Indikatoren (ema9, ema20, vwap, atr)
-     * @param {Object} opts { capital, riskPct, fee, allowShort }
+     * @param {Object} opts { capital, riskPct, fee, allowShort, atrMult, rr }
      * @returns {{ trades, stats, equity }}
      */
     function run(candles, ind, opts) {
+        const ATR_MULT = opts.atrMult || 1.5; // Stop-Abstand, identisch zum Positionsrechner
+        const RR = opts.rr || 1.5;            // Chance-Risiko-Verhältnis fürs Gewinnziel
         const signals = new Map();
         for (const m of Recommendation.markers(candles, ind)) signals.set(m.index, m.type);
 
