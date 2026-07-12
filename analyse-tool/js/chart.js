@@ -128,6 +128,65 @@ class TradingChart {
         });
         c.addEventListener('mouseleave', () => { this.mouse = null; this.draw(); });
         window.addEventListener('resize', () => this.draw());
+        this._bindTouch();
+    }
+
+    /** Touch-Bedienung: 1 Finger = verschieben + Fadenkreuz, 2 Finger = zoomen */
+    _bindTouch() {
+        const c = this.canvas;
+        let touchState = null;
+
+        const point = t => {
+            const rect = c.getBoundingClientRect();
+            return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+        };
+
+        c.addEventListener('touchstart', e => {
+            if (e.touches.length === 1) {
+                const p = point(e.touches[0]);
+                touchState = { mode: 'pan', startX: e.touches[0].clientX, startView: this.viewStart };
+                this.mouse = p;
+                this.draw();
+            } else if (e.touches.length === 2) {
+                const dist = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+                touchState = { mode: 'pinch', startDist: Math.max(dist, 1), startSpan: this.viewEnd - this.viewStart };
+                this.mouse = null;
+            }
+        }, { passive: true });
+
+        c.addEventListener('touchmove', e => {
+            if (!touchState) return;
+            e.preventDefault(); // Seite soll nicht mitscrollen
+            const rect = c.getBoundingClientRect();
+            const plotW = rect.width - this.pad.left - this.pad.right;
+
+            if (touchState.mode === 'pan' && e.touches.length === 1) {
+                const span = this.viewEnd - this.viewStart;
+                const pxPerCandle = plotW / span;
+                const shift = Math.round((touchState.startX - e.touches[0].clientX) / pxPerCandle);
+                const start = Math.max(0, Math.min(touchState.startView + shift, this.candles.length - span));
+                this.viewStart = start;
+                this.viewEnd = start + span;
+                this.mouse = point(e.touches[0]);
+                this.draw();
+            } else if (touchState.mode === 'pinch' && e.touches.length === 2) {
+                const dist = Math.max(Math.abs(e.touches[0].clientX - e.touches[1].clientX), 1);
+                const newSpan = Math.max(20, Math.min(this.candles.length,
+                    Math.round(touchState.startSpan * touchState.startDist / dist)));
+                const center = this.viewEnd - (this.viewEnd - this.viewStart) / 2;
+                let start = Math.round(center - newSpan / 2);
+                start = Math.max(0, Math.min(start, this.candles.length - newSpan));
+                this.viewStart = start;
+                this.viewEnd = start + newSpan;
+                this.draw();
+            }
+        }, { passive: false });
+
+        c.addEventListener('touchend', () => {
+            touchState = null;
+            // Fadenkreuz nach kurzem Moment ausblenden
+            setTimeout(() => { this.mouse = null; this.draw(); }, 2000);
+        }, { passive: true });
     }
 
     /* ---------- Layout ---------- */
