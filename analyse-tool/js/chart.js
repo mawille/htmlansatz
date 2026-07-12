@@ -12,6 +12,8 @@ class TradingChart {
         this.ind = null;
         this.markers = [];
         this.overlays = { ema: true, vwap: true, bollinger: true, markers: true };
+        this.rsiZones = { low: 30, high: 70 };
+        this.titles = { rsi: 'RSI (14)', macd: 'MACD (12, 26, 9)' };
 
         // Sichtfenster (Indizes in this.candles)
         this.viewStart = 0;
@@ -74,6 +76,13 @@ class TradingChart {
 
     setMarkers(markers) {
         this.markers = markers || [];
+        this.draw();
+    }
+
+    /** Beschriftungen und RSI-Zonen an die Indikator-Einstellungen anpassen */
+    setIndicatorConfig(cfg) {
+        this.rsiZones = { low: cfg.rsiLow, high: cfg.rsiHigh };
+        this.titles.rsi = `RSI (${cfg.rsiPeriod})`;
         this.draw();
     }
 
@@ -296,12 +305,13 @@ class TradingChart {
     }
 
     _drawRsiPanel(ctx, panel, xOf, w) {
-        this._panelFrame(ctx, panel, w, 'RSI (14)');
+        this._panelFrame(ctx, panel, w, this.titles.rsi);
         const yOf = v => panel.y + panel.h - (v / 100) * panel.h;
-        // 30/70-Zonen
+        // Überkauft-/Überverkauft-Zonen (einstellbar)
+        const { low, high } = this.rsiZones;
         ctx.fillStyle = 'rgba(206, 147, 216, 0.07)';
-        ctx.fillRect(this.pad.left, yOf(70), w - this.pad.left - this.pad.right, yOf(30) - yOf(70));
-        for (const lvl of [30, 50, 70]) {
+        ctx.fillRect(this.pad.left, yOf(high), w - this.pad.left - this.pad.right, yOf(low) - yOf(high));
+        for (const lvl of [low, 50, high]) {
             ctx.strokeStyle = this.colors.grid;
             ctx.setLineDash([3, 3]);
             ctx.beginPath();
@@ -319,7 +329,7 @@ class TradingChart {
     }
 
     _drawMacdPanel(ctx, panel, xOf, candleW, w) {
-        this._panelFrame(ctx, panel, w, 'MACD (12, 26, 9)');
+        this._panelFrame(ctx, panel, w, this.titles.macd);
         if (!this.ind) return;
         const { macd, signal, histogram } = this.ind.macd;
         let ext = 0;

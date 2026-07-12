@@ -23,16 +23,30 @@
     /* ---------- Indikatoren berechnen ---------- */
 
     function computeIndicators(candles) {
+        const cfg = Settings.get();
         const closes = candles.map(c => c.close);
         return {
-            ema9: Indicators.ema(closes, 9),
-            ema20: Indicators.ema(closes, 20),
-            rsi: Indicators.rsi(candles, 14),
+            // Die Schlüssel heißen historisch ema9/ema20, enthalten aber
+            // die konfigurierten Perioden (schnell/langsam)
+            ema9: Indicators.ema(closes, cfg.emaFast),
+            ema20: Indicators.ema(closes, cfg.emaSlow),
+            rsi: Indicators.rsi(candles, cfg.rsiPeriod),
             macd: Indicators.macd(candles),
-            bollinger: Indicators.bollinger(candles, 20, 2),
+            bollinger: Indicators.bollinger(candles, cfg.bbPeriod, cfg.bbMult),
             vwap: Indicators.vwap(candles),
-            atr: Indicators.atr(candles, 14),
+            atr: Indicators.atr(candles, cfg.atrPeriod),
         };
+    }
+
+    /** Alles neu rechnen und rendern, ohne Daten neu zu laden */
+    function recompute() {
+        if (!state.candles.length) return;
+        state.ind = computeIndicators(state.candles);
+        chart.setIndicatorConfig(Settings.get());
+        chart.setData(state.candles, state.ind, true);
+        chart.setMarkers(Recommendation.markers(state.candles, state.ind));
+        renderSignals();
+        renderPosition();
     }
 
     /* ---------- Laden & Rendern ---------- */
@@ -102,7 +116,7 @@
     /* ---------- Signale ---------- */
 
     function renderSignals() {
-        const result = Signals.evaluate(state.candles, state.ind);
+        const result = Signals.evaluate(state.candles, state.ind, Settings.get());
         const verdictEl = el('verdict');
         verdictEl.textContent = result.verdict;
         verdictEl.className = 'verdict ' +
@@ -135,11 +149,14 @@
 
     function renderBacktest() {
         if (!state.candles.length || !state.ind) return;
+        const cfg = Settings.get();
         const opts = {
             capital: parseFloat(el('capital').value) || 0,
             riskPct: parseFloat(el('risk').value) || 0,
             fee: parseFloat(el('bt-fee').value) || 0,
             allowShort: el('bt-short').checked,
+            atrMult: cfg.atrMult,
+            rr: cfg.rr,
         };
         const result = Backtest.run(state.candles, state.ind, opts);
         state.lastBacktest = result;
@@ -401,7 +418,8 @@
             return;
         }
 
-        const plan = Signals.positionPlan('LONG', c[i].close, atrValue, capital, riskPct);
+        const cfgS = Settings.get();
+        const plan = Signals.positionPlan('LONG', c[i].close, atrValue, capital, riskPct, cfgS.atrMult, cfgS.rr);
         const riskEuro = capital * (riskPct / 100);
         if (plan.shares < 1) {
             box.innerHTML = `<p>Mit diesem Budget und Risiko geht sich hier kein ganzer Anteil aus –
@@ -435,23 +453,58 @@
 
         const capital = parseFloat(el('capital').value) || 0;
         const riskPct = parseFloat(el('risk').value) || 0;
+        const cfg = Settings.get();
         const direction = (state.lastVerdict || '').includes('SHORT') ? 'SHORT' : 'LONG';
-        const plan = Signals.positionPlan(direction, c[i].close, atrValue, capital, riskPct);
+        const plan = Signals.positionPlan(direction, c[i].close, atrValue, capital, riskPct, cfg.atrMult, cfg.rr);
 
-        el('atr-value').textContent = 'ATR(14): ' + fmt(atrValue);
+        const de = v => v.toLocaleString('de-DE');
+        el('atr-value').textContent = `ATR(${cfg.atrPeriod}): ` + fmt(atrValue);
         box.innerHTML = `
             <table class="plan">
                 <tr><td>Richtung</td><td class="${direction === 'LONG' ? 'pos' : 'neg'}">${direction}</td></tr>
                 <tr><td>Einstieg (letzter Kurs)</td><td>${fmt(c[i].close)}</td></tr>
-                <tr><td>Stop-Loss (1,5 × ATR)</td><td>${fmt(plan.stop)}</td></tr>
-                <tr><td>Ziel 1 (1,5 R)</td><td>${fmt(plan.target1)}</td></tr>
-                <tr><td>Ziel 2 (3 R)</td><td>${fmt(plan.target2)}</td></tr>
+                <tr><td>Stop-Loss (${de(cfg.atrMult)} × ATR)</td><td>${fmt(plan.stop)}</td></tr>
+                <tr><td>Ziel 1 (${de(cfg.rr)} R)</td><td>${fmt(plan.target1)}</td></tr>
+                <tr><td>Ziel 2 (${de(cfg.rr * 2)} R)</td><td>${fmt(plan.target2)}</td></tr>
                 <tr><td>Risiko je Stück</td><td>${fmt(plan.riskPerShare)}</td></tr>
                 <tr><td>Max. Risiko</td><td>${fmt(plan.riskAmount)} €</td></tr>
                 <tr class="hl"><td>Stückzahl</td><td>${plan.shares.toLocaleString('de-DE')}</td></tr>
                 <tr><td>Positionswert</td><td>${fmt(plan.positionValue)} €</td></tr>
             </table>
             ${plan.cappedByCapital ? '<p class="muted">Stückzahl durch das Kapital begrenzt (kein Hebel eingerechnet).</p>' : ''}`;
+    }
+
+    /* ---------- Indikator-Einstellungen ---------- */
+
+    const SETTING_KEYS = ['emaFast', 'emaSlow', 'rsiPeriod', 'rsiLow', 'rsiHigh',
+        'bbPeriod', 'bbMult', 'atrPeriod', 'atrMult', 'rr'];
+
+    function fillSettingsForm() {
+        const cfg = Settings.get();
+        for (const k of SETTING_KEYS) el('set-' + k).value = cfg[k];
+        el('ov-ema-label').textContent = `EMA ${cfg.emaFast}/${cfg.emaSlow}`;
+    }
+
+    function bindSettings() {
+        for (const k of SETTING_KEYS) {
+            el('set-' + k).addEventListener('change', () => {
+                const patch = {};
+                patch[k] = parseFloat(el('set-' + k).value);
+                const cfg = Settings.set(patch);
+                el('set-' + k).value = cfg[k]; // ggf. auf gültigen Bereich korrigiert
+                el('set-hint').textContent = cfg.emaFast >= cfg.emaSlow
+                    ? '⚠️ Der schnelle EMA sollte kürzer sein als der langsame, sonst sind die Kreuz-Signale sinnlos.'
+                    : '';
+                el('ov-ema-label').textContent = `EMA ${cfg.emaFast}/${cfg.emaSlow}`;
+                recompute();
+            });
+        }
+        el('set-reset').addEventListener('click', () => {
+            Settings.reset();
+            fillSettingsForm();
+            el('set-hint').textContent = '';
+            recompute();
+        });
     }
 
     /* ---------- Kurs-Alarme & Auto-Update ---------- */
@@ -704,6 +757,9 @@
         el('view-journal-btn').addEventListener('click', () => setView('journal'));
         bindJournal();
         bindAlerts();
+        fillSettingsForm();
+        bindSettings();
+        chart.setIndicatorConfig(Settings.get());
 
         // Auto-Update (60-Sekunden-Takt)
         el('auto-refresh').addEventListener('change', e => setAutoRefresh(e.target.checked));
