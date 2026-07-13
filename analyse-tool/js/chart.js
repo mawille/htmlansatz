@@ -144,7 +144,11 @@ class TradingChart {
         c.addEventListener('touchstart', e => {
             if (e.touches.length === 1) {
                 const p = point(e.touches[0]);
-                touchState = { mode: 'pan', startX: e.touches[0].clientX, startView: this.viewStart };
+                touchState = {
+                    mode: 'pan', locked: false,
+                    startX: e.touches[0].clientX, startY: e.touches[0].clientY,
+                    startView: this.viewStart,
+                };
                 this.mouse = p;
                 this.draw();
             } else if (e.touches.length === 2) {
@@ -156,11 +160,25 @@ class TradingChart {
 
         c.addEventListener('touchmove', e => {
             if (!touchState) return;
-            e.preventDefault(); // Seite soll nicht mitscrollen
             const rect = c.getBoundingClientRect();
             const plotW = rect.width - this.pad.left - this.pad.right;
 
             if (touchState.mode === 'pan' && e.touches.length === 1) {
+                // Wischrichtung erst bestimmen: senkrecht = Seite scrollen lassen,
+                // waagerecht = Chart verschieben
+                if (!touchState.locked) {
+                    const dx = e.touches[0].clientX - touchState.startX;
+                    const dy = e.touches[0].clientY - touchState.startY;
+                    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+                    if (Math.abs(dy) > Math.abs(dx)) {
+                        touchState = null;
+                        this.mouse = null;
+                        this.draw();
+                        return;
+                    }
+                    touchState.locked = true;
+                }
+                e.preventDefault();
                 const span = this.viewEnd - this.viewStart;
                 const pxPerCandle = plotW / span;
                 const shift = Math.round((touchState.startX - e.touches[0].clientX) / pxPerCandle);
@@ -170,6 +188,7 @@ class TradingChart {
                 this.mouse = point(e.touches[0]);
                 this.draw();
             } else if (touchState.mode === 'pinch' && e.touches.length === 2) {
+                e.preventDefault();
                 const dist = Math.max(Math.abs(e.touches[0].clientX - e.touches[1].clientX), 1);
                 const newSpan = Math.max(20, Math.min(this.candles.length,
                     Math.round(touchState.startSpan * touchState.startDist / dist)));

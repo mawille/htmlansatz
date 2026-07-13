@@ -88,7 +88,7 @@ button:hover { border-color: var(--accent); }
 
 .hidden { display: none !important; }
 
-.status { font-size: 12px; color: var(--muted); margin-left: auto; }
+.status { font-size: 12px; color: var(--muted); margin-left: auto; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 .status.live { color: var(--up); }
 .status.demo { color: #f5c542; }
 .status.error { color: var(--down); }
@@ -111,14 +111,19 @@ button:hover { border-color: var(--accent); }
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 12px;
-    overflow-y: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 
 .sidebar h2, .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
 
-.watchlist { list-style: none; }
+.watchlist {
+    list-style: none;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
 
 .watchlist li {
     padding: 8px;
@@ -640,11 +645,13 @@ button.danger:hover { background: rgba(239, 83, 80, 0.1); }
 }
 
 @media (max-width: 700px) {
+    /* Die Seite selbst scrollt – keine feste Höhe, keine internen Scrollbereiche */
+    html, body { height: auto; min-height: 100%; }
     .layout { grid-template-columns: 1fr; padding: 6px; gap: 6px; }
-    .sidebar { max-height: 260px; order: 2; }
+    .sidebar { max-height: 430px; order: 2; }
     .chart-area { order: 1; padding: 8px; }
-    .panel { flex-direction: column; order: 3; }
-    .journal-area { grid-column: 1; order: 1; }
+    .panel { flex-direction: column; order: 3; overflow: visible; }
+    .journal-area { grid-column: 1; order: 1; overflow: visible; }
 
     .topbar { padding: 8px 10px; gap: 8px; }
     .topbar h1 { font-size: 15px; }

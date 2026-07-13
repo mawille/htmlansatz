@@ -855,7 +855,13 @@
         });
 
         // Aktualisieren-Button
-        el('refresh').addEventListener('click', loadSymbol);
+        el('refresh').addEventListener('click', () => loadSymbol());
+
+        // Klick auf die Status-Anzeige führt zur Live-Daten-Box
+        el('status').addEventListener('click', () => {
+            el('api-key').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => el('api-key').focus({ preventScroll: true }), 400);
+        });
     }
 
     function fmt(v) {

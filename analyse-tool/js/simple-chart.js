@@ -28,15 +28,37 @@ class SimpleChart {
         canvas.addEventListener('mouseleave', () => { this.mouse = null; this.draw(); });
         window.addEventListener('resize', () => this.draw());
 
-        // Touch: Finger auf der Linie zeigt die Sprechblase
+        // Touch: Finger auf der Linie zeigt die Sprechblase –
+        // senkrechtes Wischen scrollt weiterhin die Seite
+        let touch = null;
         const touchPos = e => {
             const rect = canvas.getBoundingClientRect();
             this.mouse = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
             this.draw();
         };
-        canvas.addEventListener('touchstart', touchPos, { passive: true });
-        canvas.addEventListener('touchmove', e => { e.preventDefault(); touchPos(e); }, { passive: false });
+        canvas.addEventListener('touchstart', e => {
+            touch = { x: e.touches[0].clientX, y: e.touches[0].clientY, locked: false };
+            touchPos(e);
+        }, { passive: true });
+        canvas.addEventListener('touchmove', e => {
+            if (!touch) return;
+            if (!touch.locked) {
+                const dx = e.touches[0].clientX - touch.x;
+                const dy = e.touches[0].clientY - touch.y;
+                if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    touch = null;
+                    this.mouse = null;
+                    this.draw();
+                    return;
+                }
+                touch.locked = true;
+            }
+            e.preventDefault();
+            touchPos(e);
+        }, { passive: false });
         canvas.addEventListener('touchend', () => {
+            touch = null;
             setTimeout(() => { this.mouse = null; this.draw(); }, 2000);
         }, { passive: true });
     }
