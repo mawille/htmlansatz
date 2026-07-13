@@ -39,7 +39,8 @@ const DataProvider = (() => {
         { symbol: 'SMCI', name: 'Super Micro Computer',    type: 'Aktie', basePrice: 47,   vola: 0.0040 },
         { symbol: 'GME',  name: 'GameStop Corp.',          type: 'Aktie', basePrice: 27,   vola: 0.0042 },
         { symbol: 'SOFI', name: 'SoFi Technologies',       type: 'Aktie', basePrice: 21,   vola: 0.0035 },
-        // --- Deutsche Trading-Favoriten (Live-Daten: nur mit Bezahl-Tarif) ---
+        // --- Deutsche Trading-Favoriten (Live-Daten automatisch über das
+        //     US-Pendant, siehe US_EQUIVALENT unten) ---
         { symbol: 'RHM',  name: 'Rheinmetall AG',          type: 'Aktie', basePrice: 1750, vola: 0.0026 },
         { symbol: 'SAP',  name: 'SAP SE',                  type: 'Aktie', basePrice: 260,  vola: 0.0013 },
         { symbol: 'SIE',  name: 'Siemens AG',              type: 'Aktie', basePrice: 218,  vola: 0.0012 },
@@ -60,6 +61,20 @@ const DataProvider = (() => {
         if (GROUP_START[w.symbol]) currentGroup = GROUP_START[w.symbol];
         w.group = currentGroup;
     }
+
+    // Der Twelve-Data-Gratis-Tarif deckt nur US-Börsen ab. Für deutsche
+    // Werte laden wir im Live-Modus automatisch das an US-Börsen
+    // gehandelte Pendant (ADR bzw. vergleichbarer ETF) – der Kursverlauf
+    // ist nahezu identisch, notiert aber in US-Dollar.
+    const US_EQUIVALENT = {
+        RHM:  'RNMBY', // Rheinmetall ADR (OTC)
+        SIE:  'SIEGY', // Siemens ADR (OTC)
+        ENR:  'SMNEY', // Siemens Energy ADR (OTC)
+        IFX:  'IFNNY', // Infineon ADR (OTC)
+        DBK:  'DB',    // Deutsche Bank (NYSE)
+        EUNL: 'URTH',  // iShares MSCI World (NYSE)
+        EXS1: 'EWG',   // iShares Germany-ETF (NYSE) als DAX-Ersatz
+    };
 
     const INTERVALS = {
         '1min':  { minutes: 1,  label: '1 Min',  days: 2 },
@@ -185,13 +200,14 @@ const DataProvider = (() => {
      */
     async function getCandles(symbol, intervalKey, apiKey) {
         if (apiKey) {
-            const candles = await fetchLiveCandles(symbol, intervalKey, apiKey);
-            return { candles, live: true };
+            const usSymbol = US_EQUIVALENT[symbol] || symbol;
+            const candles = await fetchLiveCandles(usSymbol, intervalKey, apiKey);
+            return { candles, live: true, viaSymbol: usSymbol !== symbol ? usSymbol : null };
         }
         const entry = WATCHLIST.find(w => w.symbol === symbol)
             || { symbol, basePrice: 100, vola: 0.0015 };
-        return { candles: generateDemoCandles(entry, intervalKey), live: false };
+        return { candles: generateDemoCandles(entry, intervalKey), live: false, viaSymbol: null };
     }
 
-    return { WATCHLIST, INTERVALS, getCandles };
+    return { WATCHLIST, INTERVALS, getCandles, US_EQUIVALENT };
 })();
