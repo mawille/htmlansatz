@@ -56,15 +56,18 @@
         status.textContent = 'Lade Daten …';
         status.className = 'status';
         try {
-            const { candles, live } = await DataProvider.getCandles(state.symbol, state.interval, state.apiKey);
+            const { candles, live, viaSymbol } = await DataProvider.getCandles(state.symbol, state.interval, state.apiKey);
             state.candles = candles;
             state.live = live;
+            state.viaSymbol = viaSymbol;
             state.ind = computeIndicators(candles);
             chart.setData(candles, state.ind, keepView);
             chart.setMarkers(Recommendation.markers(candles, state.ind));
             simpleChart.setData(candles);
             status.textContent = (state.autoTimer ? '⟳ ' : '') +
-                (live ? '● Live-Daten (Twelve Data)' : '● Demo-Daten (simuliert)');
+                (live
+                    ? '● Live-Daten' + (viaSymbol ? ` via US-Pendant ${viaSymbol} (USD)` : ' (Twelve Data)')
+                    : '● Demo-Daten (simuliert)');
             status.className = live ? 'status live' : 'status demo';
             renderHeader();
             renderSignals();
@@ -102,7 +105,8 @@
 
     function renderHeader() {
         const entry = DataProvider.WATCHLIST.find(w => w.symbol === state.symbol);
-        el('symbol-title').textContent = state.symbol + (entry ? ' – ' + entry.name : '');
+        el('symbol-title').textContent = state.symbol + (entry ? ' – ' + entry.name : '') +
+            (state.viaSymbol ? ` (Kurse: ${state.viaSymbol}, USD)` : '');
         const c = state.candles;
         if (!c.length) return;
         const last = c[c.length - 1];
@@ -342,7 +346,8 @@
         if (!c.length || !state.ind || !state.lastSignals) return;
         const last = c[c.length - 1];
         const entry = DataProvider.WATCHLIST.find(w => w.symbol === state.symbol);
-        el('s-symbol-title').textContent = state.symbol + (entry ? ' – ' + entry.name : '');
+        el('s-symbol-title').textContent = state.symbol + (entry ? ' – ' + entry.name : '') +
+            (state.viaSymbol ? ` (Kurse: ${state.viaSymbol}, USD)` : '');
 
         // Zusammenfassung in einem Satz
         const chg = dayChange(c);
