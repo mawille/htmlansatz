@@ -177,11 +177,30 @@ const DataProvider = (() => {
         const iv = { '1min': '1min', '5min': '5min', '15min': '15min', '1h': '1h' }[intervalKey];
         const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}` +
             `&interval=${iv}&outputsize=500&apikey=${encodeURIComponent(apiKey)}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (json.status === 'error') throw new Error(json.message || 'API-Fehler');
-        if (!json.values) throw new Error('Keine Daten erhalten');
+        let res;
+        try {
+            res = await fetch(url);
+        } catch {
+            throw new Error('Keine Verbindung zur Kurs-API (offline?)');
+        }
+        // Twelve Data liefert Fehler teils als HTTP-Status (z. B. 404),
+        // teils als JSON mit status:"error" – beides in Klartext übersetzen
+        let json = null;
+        try { json = await res.json(); } catch { /* kein JSON */ }
+        if (!res.ok || (json && json.status === 'error')) {
+            const code = (json && json.code) || res.status;
+            if (code === 401 || code === 403) {
+                throw new Error('API-Key ungültig – bitte den Key aus dem Twelve-Data-Dashboard kopieren');
+            }
+            if (code === 404) {
+                throw new Error(`Symbol ${symbol} ist im Twelve-Data-Gratis-Tarif nicht enthalten`);
+            }
+            if (code === 429) {
+                throw new Error('Abfrage-Limit erreicht (8/Minute, 800/Tag) – eine Minute warten');
+            }
+            throw new Error((json && json.message) || `API-Fehler (HTTP ${res.status})`);
+        }
+        if (!json || !json.values) throw new Error('Keine Daten erhalten');
         // Twelve Data liefert neueste zuerst -> umdrehen
         return json.values.map(v => ({
             time: new Date(v.datetime).getTime(),

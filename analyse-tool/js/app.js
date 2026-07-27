@@ -75,12 +75,14 @@
             updateWatchlistQuote(state.symbol, candles);
             checkAlerts();
         } catch (err) {
-            status.textContent = 'Fehler: ' + err.message + ' – wechsle in den Demo-Modus.';
+            status.textContent = '⚠ ' + err.message + ' – zeige Demo-Daten';
             status.className = 'status error';
+            Alerts.toast(`⚠️ <strong>${state.symbol}:</strong> ${err.message}.<br>Es werden simulierte Demo-Daten angezeigt.`, 'bad');
             if (state.apiKey) {
                 const { candles } = await DataProvider.getCandles(state.symbol, state.interval, '');
                 state.candles = candles;
                 state.live = false;
+                state.viaSymbol = null;
                 state.ind = computeIndicators(candles);
                 chart.setData(candles, state.ind);
                 chart.setMarkers(Recommendation.markers(candles, state.ind));
@@ -837,11 +839,24 @@
             loadSymbol();
         });
 
-        // API-Key
+        // API-Key: beim Speichern gegen AAPL testen (sicher im Gratis-Tarif),
+        // damit klar ist, ob der Key selbst funktioniert
         el('api-key').value = state.apiKey;
-        el('api-key-save').addEventListener('click', () => {
+        el('api-key-save').addEventListener('click', async () => {
             state.apiKey = el('api-key').value.trim();
             localStorage.setItem('td_api_key', state.apiKey);
+            if (state.apiKey) {
+                el('api-key-save').disabled = true;
+                el('api-key-save').textContent = 'Prüfe Key …';
+                try {
+                    await DataProvider.getCandles('AAPL', '5min', state.apiKey);
+                    Alerts.toast('✅ <strong>API-Key funktioniert.</strong> Live-Daten sind aktiv – US-Symbole zeigen jetzt echte Kurse.', 'good');
+                } catch (err) {
+                    Alerts.toast('⚠️ <strong>Key-Test fehlgeschlagen:</strong> ' + err.message, 'bad');
+                }
+                el('api-key-save').disabled = false;
+                el('api-key-save').textContent = 'Speichern & laden';
+            }
             loadSymbol();
         });
 

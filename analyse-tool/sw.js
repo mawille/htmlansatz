@@ -7,7 +7,7 @@
  * Demo-Modus weiter. API-Aufrufe (Twelve Data) werden nie gecacht.
  */
 
-const CACHE = 'day-trading-analyse-v3';
+const CACHE = 'day-trading-analyse-v4';
 
 const ASSETS = [
     './',
